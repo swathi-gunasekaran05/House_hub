@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>House Hub • 4 Roommates</title>
+  <!-- Google Fonts for modern premium typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Top Header Bar -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="house-badge">
+          <span class="house-icon">🏡</span>
+          <div class="house-meta">
+            <span class="house-title">Our House</span>
+            <span class="house-sub">4 Roommates</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <!-- Active User Selector -->
+        <div class="user-pill" id="userSwitchBtn" title="Switch logged-in roommate">
+          <div class="avatar-small" id="headerAvatar">S</div>
+          <div class="user-pill-info">
+            <span class="user-pill-label">Active User</span>
+            <strong class="user-pill-name" id="headerUserName">Swathi</strong>
+          </div>
+          <span class="switch-icon">⇄</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Container with 4 Pages -->
+    <main class="main-content">
+
+      <!-- ================= 1. HOME / DASHBOARD ================= -->
+      <section id="page-home" class="page-section active">
+        <!-- Today's Greeting Card -->
+        <div class="hero-card">
+          <div class="hero-date" id="dashDate">Wednesday, 30 September</div>
+          <h2 class="hero-greeting" id="dashGreeting">Good day, Swathi! ✨</h2>
+          <div class="balance-strip">
+            <div class="balance-item pay">
+              <span class="bal-label">You need to pay</span>
+              <strong class="bal-value" id="dashOweAmount">₹0.00</strong>
+            </div>
+            <div class="bal-divider"></div>
+            <div class="balance-item receive">
+              <span class="bal-label">Others owe you</span>
+              <strong class="bal-value" id="dashReceiveAmount">₹0.00</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Today's Household Work -->
+        <div class="card-section">
+          <div class="section-title-row">
+            <div class="title-with-badge">
+              <h3>Today's Work</h3>
+              <span class="badge" id="todayWorkCount">0</span>
+            </div>
+            <button class="text-btn" onclick="app.navTo('calendar')">View Calendar →</button>
+          </div>
+          <div class="card work-card-list" id="dashWorkList">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Today's Expenses & Pending Dues -->
+        <div class="card-section">
+          <div class="section-title-row">
+            <div class="title-with-badge">
+              <h3>Recent / Today's Expenses</h3>
+            </div>
+            <button class="text-btn" onclick="app.navTo('expenses')">All Expenses →</button>
+          </div>
+          <div id="dashExpenseAlerts">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Shopping List Preview -->
+        <div class="card-section">
+          <div class="section-title-row">
+            <div class="title-with-badge">
+              <h3>To Buy Today</h3>
+              <span class="badge badge-amber" id="dashPendingShopCount">0</span>
+            </div>
+            <button class="text-btn" onclick="app.navTo('notes')">Full List →</button>
+          </div>
+          <div class="card compact-shopping" id="dashShoppingPreview">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Important Notes Preview -->
+        <div class="card-section">
+          <div class="section-title-row">
+            <div class="title-with-badge">
+              <h3>House Notes</h3>
+            </div>
+            <button class="text-btn" onclick="app.navTo('notes')">Manage Notes →</button>
+          </div>
+          <div class="card notes-preview-card" id="dashNotesPreview">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 2. EXPENSES PAGE ================= -->
+      <section id="page-expenses" class="page-section">
+        <div class="page-header">
+          <div>
+            <h2>Expenses</h2>
+            <p class="subtitle">Track shared bills & settlement</p>
+          </div>
+          <button class="btn btn-primary" onclick="app.openAddExpenseModal()">
+            <span class="btn-icon">+</span> Add Expense
+          </button>
+        </div>
+
+        <!-- My Personal Balance Card -->
+        <div class="card personal-balance-card">
+          <div class="pbal-header">
+            <h4>My Balance Summary (<span class="accent-name" id="pbalUser">Swathi</span>)</h4>
+            <span class="info-tag">Real-time</span>
+          </div>
+          <div class="pbal-stats">
+            <div class="pbal-stat-box green">
+              <span class="stat-lbl">Money I Paid</span>
+              <strong class="stat-val" id="pbalPaid">₹0.00</strong>
+            </div>
+            <div class="pbal-stat-box red">
+              <span class="stat-lbl">I Need To Pay</span>
+              <strong class="stat-val" id="pbalOwe">₹0.00</strong>
+            </div>
+            <div class="pbal-stat-box blue">
+              <span class="stat-lbl">Others Owe Me</span>
+              <strong class="stat-val" id="pbalOwed">₹0.00</strong>
+            </div>
+          </div>
+
+          <!-- Pending Breakdown for active user -->
+          <div class="dues-summary-collapse" id="duesBreakdownBox">
+            <!-- Dynamic breakdowns injected here -->
+          </div>
+        </div>
+
+        <!-- Filter tabs for expenses -->
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-exp-filter="all" onclick="app.setExpenseFilter('all')">All Expenses</button>
+          <button class="filter-tab" data-exp-filter="unsettled" onclick="app.setExpenseFilter('unsettled')">Pending</button>
+          <button class="filter-tab" data-exp-filter="mine" onclick="app.setExpenseFilter('mine')">Paid By Me</button>
+          <button class="filter-tab" data-exp-filter="i_owe" onclick="app.setExpenseFilter('i_owe')">I Need To Pay</button>
+        </div>
+
+        <!-- Expenses List -->
+        <div class="expenses-container" id="expensesList">
+          <!-- Injected via JS -->
+        </div>
+      </section>
+
+      <!-- ================= 3. CALENDAR / WORK SCHEDULE ================= -->
+      <section id="page-calendar" class="page-section">
+        <div class="page-header">
+          <div>
+            <h2>Household Work</h2>
+            <p class="subtitle">Who cooks, cleans, and washes?</p>
+          </div>
+          <button class="btn btn-primary" onclick="app.openAddWorkModal()">
+            <span class="btn-icon">+</span> Add Work
+          </button>
+        </div>
+
+        <!-- Calendar View Selector: Day, Week, Month -->
+        <div class="view-switch-bar">
+          <div class="view-tabs">
+            <button class="view-tab active" id="tabDayView" onclick="app.setCalendarView('day')">Day</button>
+            <button class="view-tab" id="tabWeekView" onclick="app.setCalendarView('week')">Week</button>
+            <button class="view-tab" id="tabMonthView" onclick="app.setCalendarView('month')">Month</button>
+          </div>
+
+          <!-- Date Navigation Bar -->
+          <div class="date-navigator">
+            <button class="nav-arrow-btn" onclick="app.shiftCalendarDate(-1)">‹</button>
+            <span class="current-date-display" id="calDateLabel" onclick="app.promptDatePick()">Today</span>
+            <button class="nav-arrow-btn" onclick="app.shiftCalendarDate(1)">›</button>
+            <button class="today-shortcut-btn" onclick="app.resetCalendarToToday()">Today</button>
+          </div>
+        </div>
+
+        <!-- Quick 7-Day Date Pill Strip for quick tap -->
+        <div class="week-strip-container" id="weekStrip">
+          <!-- Generated in JS -->
+        </div>
+
+        <!-- Calendar Main Container -->
+        <div class="calendar-content-area" id="calendarContentArea">
+          <!-- Day view or Week view or Month view will render here -->
+        </div>
+
+        <!-- Work summary by roommate for the selected day/period -->
+        <div class="card roster-card">
+          <div class="roster-header">
+            <h4>Roommate Assignments</h4>
+            <span class="text-muted" id="rosterPeriod">Today</span>
+          </div>
+          <div class="roster-grid" id="rosterGrid">
+            <!-- Roommate cards with counts -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 4. NOTES & SHOPPING LIST ================= -->
+      <section id="page-notes" class="page-section">
+        <div class="page-header">
+          <div>
+            <h2>Notes & Shopping</h2>
+            <p class="subtitle">House reminders and things to buy</p>
+          </div>
+        </div>
+
+        <!-- Section Switcher: Shopping vs Messages -->
+        <div class="tab-pill-bar">
+          <button class="tab-pill active" id="tabShoppingPill" onclick="app.setNotesTab('shopping')">
+            🛒 Shopping List <span class="badge" id="notesShopBadge">0</span>
+          </button>
+          <button class="tab-pill" id="tabMessagesPill" onclick="app.setNotesTab('messages')">
+            📌 Shared Notes <span class="badge" id="notesMsgBadge">0</span>
+          </button>
+        </div>
+
+        <!-- Sub-section: Shopping List -->
+        <div id="sub-shopping" class="sub-tab-panel active">
+          <!-- Add Shopping Item Bar -->
+          <form class="quick-add-form" onsubmit="app.handleQuickAddShopping(event)">
+            <input type="text" id="quickShopInput" placeholder="Add item (e.g. Milk, Rice, Detergent)..." required autocomplete="off">
+            <button type="submit" class="btn btn-primary btn-compact">Add</button>
+          </form>
+
+          <div class="shopping-toolbar">
+            <span class="text-muted" id="shoppingStats">0 items</span>
+            <button class="text-btn danger" onclick="app.clearCompletedShopping()">Clear Completed</button>
+          </div>
+
+          <div class="shopping-list-container" id="shoppingList">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Sub-section: Shared Notes -->
+        <div id="sub-messages" class="sub-tab-panel">
+          <div class="notes-top-bar">
+            <button class="btn btn-primary" onclick="app.openAddNoteModal()">
+              <span class="btn-icon">+</span> Post New Note
+            </button>
+          </div>
+
+          <div class="notes-grid" id="sharedNotesGrid">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar (Fixed for Mobile) -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-page="home" onclick="app.navTo('home')">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Home</span>
+      </button>
+      <button class="nav-item" data-page="expenses" onclick="app.navTo('expenses')">
+        <span class="nav-icon">💰</span>
+        <span class="nav-label">Expenses</span>
+      </button>
+      <button class="nav-item" data-page="calendar" onclick="app.navTo('calendar')">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Calendar</span>
+      </button>
+      <button class="nav-item" data-page="notes" onclick="app.navTo('notes')">
+        <span class="nav-icon">📝</span>
+        <span class="nav-label">Notes</span>
+      </button>
+    </nav>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- Switch User Modal -->
+    <div class="modal-backdrop" id="userSwitchModal">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <h3>Who are you?</h3>
+          <button class="close-btn" onclick="app.closeModal('userSwitchModal')">✕</button>
+        </div>
+        <p class="modal-subtitle">Select your name to view your individual balance, dues, and actions.</p>
+        <div class="user-select-grid" id="userPickerGrid">
+          <!-- 4 Roommate buttons injected here -->
+        </div>
+        <div style="margin-top:14px; display:flex; gap:8px;">
+          <button type="button" class="btn btn-secondary btn-compact" style="flex:1;" onclick="app.openChangePinModal()">🔑 Change My PIN</button>
+          <button type="button" class="btn btn-danger-outline btn-compact" onclick="app.logout()">Logout</button>
+        </div>
+        <div style="margin-top:16px; border-top:1px solid var(--border-light); padding-top:12px; display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:12px; color:var(--text-muted);">House Data:</span>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="text-btn danger" onclick="app.resetToBlank()">Start Fresh</button>
+            <button type="button" class="text-btn" onclick="app.resetToDemo()">Reload Demo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Secure Roommate Login Modal -->
+    <div class="modal-backdrop" id="loginModal">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <h3>🏡 Roommate Login</h3>
+        </div>
+        <p class="modal-subtitle">Private access for Vaishali, Kaviya, Elakiya, and Swathi.</p>
+        <form onsubmit="app.handleLogin(event)">
+          <div class="form-group">
+            <label>Select Roommate *</label>
+            <select id="loginUserSelect" required>
+              <option value="Swathi">Swathi</option>
+              <option value="Vaishali">Vaishali</option>
+              <option value="Kaviya">Kaviya</option>
+              <option value="Elakiya">Elakiya</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Security PIN *</label>
+            <input type="password" id="loginPinInput" placeholder="Enter PIN (Default: 1234)" required autocomplete="current-password">
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); margin-bottom:14px;">
+            Default PIN for all 4 roommates is <strong>1234</strong>. You can change your PIN once logged in.
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;">Log In & Access House Hub</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Change PIN Modal -->
+    <div class="modal-backdrop" id="changePinModal">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <h3>Change Your PIN</h3>
+          <button class="close-btn" onclick="app.closeModal('changePinModal')">✕</button>
+        </div>
+        <form onsubmit="app.handleChangePin(event)">
+          <div class="form-group">
+            <label>Current PIN *</label>
+            <input type="password" id="currPinInput" placeholder="Enter current PIN" required>
+          </div>
+          <div class="form-group">
+            <label>New PIN (minimum 4 digits) *</label>
+            <input type="password" id="newPinInput" placeholder="Enter new PIN" required>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="app.closeModal('changePinModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Update PIN</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Add / Edit Expense Modal -->
+    <div class="modal-backdrop" id="expenseModal">
+      <div class="modal-sheet modal-lg">
+        <div class="modal-header">
+          <h3 id="expenseModalTitle">Add Expense</h3>
+          <button class="close-btn" onclick="app.closeModal('expenseModal')">✕</button>
+        </div>
+
+        <form id="expenseForm" onsubmit="app.handleSaveExpense(event)">
+          <input type="hidden" id="expId" value="">
+
+          <div class="form-row two-col">
+            <div class="form-group">
+              <label>Date *</label>
+              <input type="date" id="expDate" required>
+            </div>
+            <div class="form-group">
+              <label>Paid by *</label>
+              <select id="expPaidBy" required>
+                <!-- Roommates -->
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Expense Title / Place (optional)</label>
+            <input type="text" id="expTitle" placeholder="e.g. Supermarket, Vegetable Market, Gas Cylinder">
+          </div>
+
+          <!-- Item Level Expenses -->
+          <div class="form-group">
+            <div class="items-header-row">
+              <label>Items Breakdown</label>
+              <button type="button" class="btn-text-action" onclick="app.addExpenseItemRow()">+ Add Item</button>
+            </div>
+            <p class="form-hint">Add individual items. The total calculates automatically.</p>
+
+            <div class="expense-items-table" id="expenseItemsContainer">
+              <!-- Item rows injected here -->
+            </div>
+          </div>
+
+          <!-- Total Calculation Display -->
+          <div class="total-banner">
+            <span>Total Expense:</span>
+            <strong id="expCalculatedTotal">₹0.00</strong>
+          </div>
+
+          <!-- Split Between Checkboxes -->
+          <div class="form-group split-group">
+            <label>Split this expense between:</label>
+            <div class="split-checkboxes" id="expSplitCheckboxes">
+              <!-- Vaishali, Kaviya, Elakiya, Swathi -->
+            </div>
+            <div class="split-preview-banner" id="expSplitPreview">
+              Split between 4 people: <strong>₹0.00 each</strong>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="app.closeModal('expenseModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btnSaveExpense">Save Expense</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- View Expense Details & Payment Breakdown Modal -->
+    <div class="modal-backdrop" id="expenseDetailModal">
+      <div class="modal-sheet modal-lg">
+        <div class="modal-header">
+          <div>
+            <h3 id="detailExpTitle">Expense Details</h3>
+            <span class="text-muted" id="detailExpDate"></span>
+          </div>
+          <button class="close-btn" onclick="app.closeModal('expenseDetailModal')">✕</button>
+        </div>
+
+        <div class="detail-body">
+          <!-- Total and Payer -->
+          <div class="detail-hero">
+            <div class="detail-hero-left">
+              <span class="detail-label">Total Amount</span>
+              <h2 class="detail-amount" id="detailExpTotal">₹0.00</h2>
+            </div>
+            <div class="detail-hero-right">
+              <span class="detail-label">Paid by</span>
+              <div class="payer-badge" id="detailExpPayer">Swathi</div>
+            </div>
+          </div>
+
+          <!-- Line items table -->
+          <div class="detail-section">
+            <h4>Items Purchased</h4>
+            <div class="detail-items-list" id="detailItemsList"></div>
+          </div>
+
+          <!-- Payment Breakdown & Tick as Paid -->
+          <div class="detail-section">
+            <div class="section-title-row">
+              <h4>Split & Payment Status</h4>
+              <span class="pending-tag" id="detailPendingBadge">2 Pending</span>
+            </div>
+            <p class="form-hint">Click "Mark as Paid" when someone settles their share.</p>
+
+            <div class="split-status-list" id="detailSplitList">
+              <!-- Vaishali ₹250 [Pending / Paid], etc. -->
+            </div>
+          </div>
+
+          <!-- Creator Actions (Only visible to the roommate who paid) -->
+          <div class="detail-footer-actions" id="detailCreatorActions">
+            <button class="btn btn-danger-outline" id="btnDeleteExpense">Delete Expense</button>
+            <button class="btn btn-secondary" id="btnEditExpense">Edit Expense</button>
+          </div>
+
+          <!-- Non-creator notice when someone else paid -->
+          <div id="detailNonCreatorNotice" class="non-creator-notice hidden">
+            <span>🔒 Only <strong id="noticePayerName">Payer</strong> can edit or delete this expense.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add / Edit Work Schedule Modal -->
+    <div class="modal-backdrop" id="workModal">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <h3 id="workModalTitle">Add Household Work</h3>
+          <button class="close-btn" onclick="app.closeModal('workModal')">✕</button>
+        </div>
+
+        <form id="workForm" onsubmit="app.handleSaveWork(event)">
+          <input type="hidden" id="workId" value="">
+
+          <div class="form-row two-col">
+            <div class="form-group">
+              <label>Date *</label>
+              <input type="date" id="workDate" required>
+            </div>
+            <div class="form-group">
+              <label>Assigned To *</label>
+              <select id="workAssignedTo" required>
+                <!-- Roommates -->
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Work Type *</label>
+            <select id="workTypeSelect" onchange="app.onWorkTypeChange(this.value)" required>
+              <option value="🍳 Cooking">🍳 Cooking</option>
+              <option value="🍽 Washing vessels">🍽 Washing vessels</option>
+              <option value="🧹 Sweeping">🧹 Sweeping</option>
+              <option value="🧽 Mopping">🧽 Mopping</option>
+              <option value="🚿 Bathroom cleaning">🚿 Bathroom cleaning</option>
+              <option value="🧼 Kitchen cleaning">🧼 Kitchen cleaning</option>
+              <option value="🧺 Laundry">🧺 Laundry</option>
+              <option value="🛒 Buying groceries">🛒 Buying groceries</option>
+              <option value="🥬 Buying vegetables">🥬 Buying vegetables</option>
+              <option value="🗑 Taking garbage out">🗑 Taking garbage out</option>
+              <option value="🧊 Cleaning fridge">🧊 Cleaning fridge</option>
+              <option value="CUSTOM">➕ Other / Custom Work...</option>
+            </select>
+          </div>
+
+          <div class="form-group hidden" id="customWorkGroup">
+            <label>Custom Work Name</label>
+            <input type="text" id="customWorkInput" placeholder="e.g. Balcony cleaning, Water tank">
+          </div>
+
+          <div class="form-row two-col">
+            <div class="form-group">
+              <label>Time / Shift (optional)</label>
+              <input type="text" id="workTime" placeholder="e.g. Morning 8am, Night">
+            </div>
+            <div class="form-group">
+              <label>Repeating (optional)</label>
+              <select id="workRepeat">
+                <option value="none">One-time only</option>
+                <option value="daily">Every day</option>
+                <option value="weekly">Every week on this day</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Note / Specifics (optional)</label>
+            <input type="text" id="workNote" placeholder="e.g. Sambar and Rice, Soak dal first">
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="app.closeModal('workModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btnSaveWork">Save Work</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Add / Edit Shared Note Modal -->
+    <div class="modal-backdrop" id="noteModal">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <h3 id="noteModalTitle">Post a House Note</h3>
+          <button class="close-btn" onclick="app.closeModal('noteModal')">✕</button>
+        </div>
+
+        <form id="noteForm" onsubmit="app.handleSaveNote(event)">
+          <input type="hidden" id="noteId" value="">
+
+          <div class="form-group">
+            <label>Message *</label>
+            <textarea id="noteContent" rows="4" placeholder="Write a note or reminder for everyone..." required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Category / Tag</label>
+            <select id="noteCategory">
+              <option value="📌 General">📌 General</option>
+              <option value="⚡ Bills & Utilities">⚡ Bills & Utilities</option>
+              <option value="🚪 Room & House">🚪 Room & House</option>
+              <option value="🎉 Event / Friends coming">🎉 Event / Friends coming</option>
+            </select>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="app.closeModal('noteModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Note</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast Notification Overlay -->
+    <div class="toast" id="toast"></div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
