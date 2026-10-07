@@ -69,10 +69,14 @@ html, body {
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
 }
 
 /* Mobile shell wrapper: locks to phone aspect ratio on desktop, full screen on mobile */
 #app {
+  width: 100%;
   max-width: var(--max-width);
   min-height: 100vh;
   margin: 0 auto;
@@ -2059,3 +2063,885 @@ input:focus, select:focus, textarea:focus {
 .text-muted {
   color: var(--text-muted);
 }
+
+/* ===================================================
+   MOBILE RESPONSIVENESS & MEDIA QUERIES
+   Supporting widths: 320px, 375px, 390px, 430px, 540px
+   =================================================== */
+
+/* Global overflow and sizing guards */
+img, svg, video, canvas, audio, iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+input, select, textarea, button {
+  max-width: 100%;
+}
+
+table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  overflow-x: auto;
+  display: block;
+}
+
+/* General Mobile Devices & Mobile Shell (<= 540px) */
+@media screen and (max-width: 540px) {
+  html, body {
+    background-color: var(--bg-app);
+  }
+
+  #app {
+    box-shadow: none;
+    width: 100%;
+  }
+
+  /* Header mobile layout */
+  .app-header {
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .house-badge {
+    gap: 8px;
+  }
+
+  .house-icon {
+    font-size: 24px;
+  }
+
+  .house-title {
+    font-size: 15px;
+    letter-spacing: -0.2px;
+  }
+
+  .house-sub {
+    font-size: 10px;
+  }
+
+  .header-right {
+    gap: 6px;
+  }
+
+  .user-profile-badge {
+    padding: 3px 8px 3px 4px;
+    gap: 6px;
+  }
+
+  .user-profile-name {
+    font-size: 12px;
+  }
+
+  .avatar-small {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+
+  .header-action-btn {
+    padding: 6px 8px;
+    font-size: 11px;
+    min-height: 34px;
+  }
+
+  /* Main content container */
+  .main-content {
+    padding: 12px 12px calc(var(--nav-height) + 20px) 12px;
+    gap: 16px;
+  }
+
+  /* Page headers */
+  .page-header {
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .page-header h2 {
+    font-size: 20px;
+  }
+
+  .subtitle {
+    font-size: 12px;
+  }
+
+  /* Section headers & filter buttons */
+  .section-title-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .section-title-row h3 {
+    font-size: 15px;
+  }
+
+  .work-header-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .dash-work-filter-pills .dash-filter-pill {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  /* Cards */
+  .card {
+    padding: 14px 12px;
+  }
+
+  /* Home hero banner */
+  .hero-card {
+    padding: 16px 14px;
+  }
+
+  .hero-greeting {
+    font-size: clamp(18px, 5.2vw, 22px);
+    margin: 4px 0 12px 0;
+  }
+
+  .hero-net-balance-row {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    padding: 8px 10px;
+  }
+
+  .net-bal-label {
+    font-size: 11px;
+  }
+
+  .net-bal-value {
+    font-size: 16px;
+  }
+
+  .balance-strip {
+    padding: 10px 12px;
+  }
+
+  .bal-label {
+    font-size: 10px;
+  }
+
+  .bal-value {
+    font-size: clamp(15px, 4.4vw, 19px);
+    word-break: break-word;
+  }
+
+  .bal-divider {
+    margin: 0 10px;
+    height: 32px;
+  }
+
+  /* Work task item overflow safeguards */
+  .work-item {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .work-left {
+    min-width: 0;
+    gap: 10px;
+  }
+
+  .work-info {
+    min-width: 0;
+  }
+
+  .work-name {
+    font-size: 13px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .work-meta {
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    font-size: 11px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .work-actions {
+    flex-shrink: 0;
+  }
+
+  /* Expenses card */
+  .expense-card {
+    padding: 14px 12px;
+  }
+
+  .expense-top {
+    gap: 8px;
+  }
+
+  .expense-meta-left {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .expense-icon-badge {
+    width: 38px;
+    height: 38px;
+    font-size: 19px;
+  }
+
+  .expense-title-group {
+    min-width: 0;
+  }
+
+  .expense-title-group h4 {
+    font-size: 14px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .expense-date-payer {
+    font-size: 11px;
+  }
+
+  .expense-amount-group {
+    flex-shrink: 0;
+  }
+
+  .expense-total {
+    font-size: 16px;
+  }
+
+  .expense-items-preview {
+    font-size: 11px;
+    padding: 6px 8px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .expense-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .split-pill-group {
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+
+  /* Personal Balance Card */
+  .pbal-header h4 {
+    font-size: 13px;
+  }
+
+  .pbal-stats {
+    gap: 6px;
+  }
+
+  .pbal-stat-box {
+    padding: 8px 5px;
+  }
+
+  .stat-lbl {
+    font-size: 9px;
+    letter-spacing: 0;
+  }
+
+  .stat-val {
+    font-size: 14px;
+    word-break: break-word;
+  }
+
+  .due-row {
+    font-size: 11px;
+    padding: 6px 8px;
+    word-break: break-word;
+  }
+
+  /* Filter Tabs */
+  .filter-tabs {
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .filter-tab {
+    padding: 6px 12px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  /* Calendar Views */
+  .view-tab {
+    padding: 7px 4px;
+    font-size: 12px;
+  }
+
+  .date-navigator {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+
+  .nav-arrow-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .current-date-display {
+    font-size: 13px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .today-shortcut-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+
+  .week-strip-container {
+    gap: 3px;
+  }
+
+  .day-pill {
+    padding: 6px 2px;
+  }
+
+  .day-pill .day-name {
+    font-size: 9px;
+  }
+
+  .day-pill .day-num {
+    font-size: 13px;
+  }
+
+  .month-calendar-grid {
+    padding: 8px 4px;
+    gap: 3px;
+  }
+
+  .month-weekday-header {
+    font-size: 9px;
+    padding: 2px 0;
+  }
+
+  .month-cell {
+    font-size: 11px;
+    border-radius: 4px;
+  }
+
+  .month-cell-work-dots {
+    bottom: 1px;
+    gap: 1px;
+  }
+
+  .work-mini-dot {
+    width: 3px;
+    height: 3px;
+  }
+
+  /* Roster 2 columns on mobile so all roommate names and counts fit */
+  .roster-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .roster-item {
+    padding: 8px 6px;
+  }
+
+  .roster-name {
+    font-size: 12px;
+    word-break: break-word;
+  }
+
+  .roster-count {
+    font-size: 12px;
+  }
+
+  /* Notes & Shopping */
+  .tab-pill-bar {
+    gap: 6px;
+  }
+
+  .tab-pill {
+    padding: 8px 6px;
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .quick-add-form {
+    gap: 6px;
+  }
+
+  .quick-add-form input {
+    padding: 10px 10px;
+    font-size: 13px;
+    min-width: 0;
+  }
+
+  .quick-add-form button {
+    padding: 8px 14px;
+    flex-shrink: 0;
+  }
+
+  .shop-item {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .shop-left {
+    min-width: 0;
+    gap: 10px;
+  }
+
+  .shop-text-group {
+    min-width: 0;
+  }
+
+  .shop-text {
+    font-size: 13px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .shop-meta {
+    font-size: 11px;
+  }
+
+  .note-card {
+    padding: 14px 12px;
+    gap: 8px;
+  }
+
+  .note-content {
+    font-size: 13px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .note-footer {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Forms & Modals reflow */
+  .form-row.two-col {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .modal-sheet {
+    max-height: 90vh;
+    padding: 18px 14px 24px 14px;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .modal-header h3 {
+    font-size: 16px;
+  }
+
+  .item-row {
+    gap: 6px;
+  }
+
+  .item-row input[type="text"] {
+    flex: 3;
+    min-width: 0;
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+
+  .item-row .item-amount-wrapper {
+    flex: 2;
+    min-width: 0;
+  }
+
+  .item-row .item-amount-wrapper input {
+    padding-left: 20px;
+    padding-right: 6px;
+    font-size: 13px;
+    min-width: 0;
+  }
+
+  .currency-sym {
+    left: 6px;
+    font-size: 13px;
+  }
+
+  .btn-remove-row {
+    width: 32px;
+    height: 38px;
+    flex-shrink: 0;
+  }
+
+  .split-checkboxes {
+    gap: 6px;
+  }
+
+  .split-check-card {
+    padding: 7px 8px;
+    font-size: 12px;
+  }
+
+  .detail-hero {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .detail-amount {
+    font-size: clamp(20px, 5.2vw, 24px);
+  }
+
+  .detail-item-row {
+    word-break: break-word;
+    gap: 8px;
+  }
+
+  .split-person-card {
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 10px;
+  }
+
+  .split-person-info {
+    min-width: 140px;
+    flex: 1;
+    gap: 8px;
+  }
+
+  .split-person-action {
+    flex-shrink: 0;
+  }
+
+  .btn-toggle-paid {
+    min-height: 34px;
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+
+  .detail-footer-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .detail-footer-actions .btn {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .house-data-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .house-data-buttons .btn {
+    width: 100%;
+  }
+
+  /* Bottom nav mobile polish */
+  .bottom-nav {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 4px);
+  }
+
+  .nav-item {
+    min-height: 44px;
+  }
+
+  .toast {
+    max-width: calc(100vw - 32px);
+    white-space: normal;
+    text-align: center;
+    bottom: calc(var(--nav-height) + 12px);
+  }
+}
+
+/* Screen widths <= 430px (iPhone 14/15/16 Pro Max, iPhone 15 Plus, Galaxy Ultra) */
+@media screen and (max-width: 430px) {
+  .app-header {
+    padding: 0 10px;
+  }
+
+  .header-action-btn {
+    padding: 5px 6px;
+    font-size: 11px;
+    gap: 2px;
+  }
+
+  .login-card {
+    padding: 24px 16px;
+    border-radius: 20px;
+  }
+
+  .login-roommate-grid {
+    gap: 8px;
+  }
+
+  .roommate-select-btn {
+    padding: 10px 8px;
+    font-size: 13px;
+    gap: 6px;
+  }
+
+  .hero-card {
+    padding: 16px 12px;
+  }
+
+  .hero-greeting {
+    font-size: 19px;
+  }
+
+  .hero-net-balance-row {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+
+  .net-bal-sub {
+    margin-left: 0;
+    width: 100%;
+    font-size: 11px;
+  }
+
+  .balance-strip {
+    padding: 10px 12px;
+  }
+
+  .bal-value {
+    font-size: 16px;
+  }
+
+  .bal-divider {
+    margin: 0 10px;
+  }
+
+  .split-check-card {
+    padding: 7px 8px;
+    font-size: 12px;
+  }
+}
+
+/* Screen widths <= 390px (iPhone 12/13/14/15/16, Google Pixel) */
+@media screen and (max-width: 390px) {
+  .house-meta .house-sub {
+    display: none;
+  }
+
+  .house-title {
+    font-size: 14px;
+  }
+
+  .user-profile-name {
+    display: none;
+  }
+
+  .user-profile-badge {
+    padding: 2px;
+    border-radius: var(--radius-full);
+    background: transparent;
+    border: none;
+  }
+
+  .avatar-small {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+
+  .header-action-btn {
+    padding: 5px 6px;
+    font-size: 11px;
+  }
+
+  .main-content {
+    padding: 10px 10px calc(var(--nav-height) + 16px) 10px;
+    gap: 14px;
+  }
+
+  .page-header h2 {
+    font-size: 19px;
+  }
+
+  .pbal-stat-box {
+    padding: 8px 4px;
+  }
+
+  .stat-lbl {
+    font-size: 8.5px;
+  }
+
+  .stat-val {
+    font-size: 13px;
+  }
+
+  .date-navigator {
+    padding: 5px 6px;
+  }
+
+  .current-date-display {
+    font-size: 12px;
+  }
+
+  .today-shortcut-btn {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+
+  .tab-pill {
+    padding: 8px 5px;
+    font-size: 12px;
+  }
+}
+
+/* Screen widths <= 375px (iPhone SE, iPhone mini, iPhone 8) */
+@media screen and (max-width: 375px) {
+  .app-header {
+    padding: 0 8px;
+  }
+
+  .house-icon {
+    font-size: 22px;
+  }
+
+  .house-title {
+    font-size: 13px;
+  }
+
+  .header-action-btn {
+    padding: 4px 6px;
+    font-size: 10.5px;
+    gap: 2px;
+  }
+
+  .day-pill .day-name {
+    font-size: 8.5px;
+  }
+
+  .day-pill .day-num {
+    font-size: 12px;
+  }
+
+  .month-calendar-grid {
+    padding: 6px 3px;
+    gap: 2px;
+  }
+
+  .month-cell {
+    font-size: 10.5px;
+  }
+
+  .month-weekday-header {
+    font-size: 8.5px;
+  }
+
+  .total-banner {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .total-banner strong {
+    font-size: 17px;
+  }
+}
+
+/* Narrow & Small Screens (<= 340px down to 320px: iPhone SE 1st gen, compact Androids) */
+@media screen and (max-width: 340px) {
+  .app-header {
+    padding: 0 6px;
+  }
+
+  .house-title {
+    font-size: 12px;
+    letter-spacing: -0.4px;
+  }
+
+  .header-right {
+    gap: 3px;
+  }
+
+  .header-action-btn {
+    padding: 4px 5px;
+    font-size: 10px;
+  }
+
+  /* Make header action buttons ultra-compact on <=340px so all fit cleanly with avatar */
+  .header-action-btn .btn-lbl {
+    display: none;
+  }
+
+  .main-content {
+    padding: 8px 8px calc(var(--nav-height) + 14px) 8px;
+    gap: 12px;
+  }
+
+  .card {
+    padding: 12px 10px;
+  }
+
+  .hero-card {
+    padding: 14px 10px;
+  }
+
+  .hero-greeting {
+    font-size: 17px;
+  }
+
+  .balance-strip {
+    padding: 8px 10px;
+  }
+
+  .bal-value {
+    font-size: 14px;
+  }
+
+  .bal-divider {
+    margin: 0 6px;
+  }
+
+  .pbal-stats {
+    gap: 4px;
+  }
+
+  .pbal-stat-box {
+    padding: 6px 3px;
+  }
+
+  .stat-lbl {
+    font-size: 8px;
+  }
+
+  .stat-val {
+    font-size: 12px;
+  }
+
+  .dash-work-filter-pills .dash-filter-pill {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+
+  .split-checkboxes {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .tab-pill {
+    font-size: 11px;
+    padding: 7px 4px;
+  }
+
+  .bottom-nav {
+    padding: 0 4px;
+  }
+
+  .nav-icon {
+    font-size: 18px;
+  }
+
+  .nav-label {
+    font-size: 9.5px;
+  }
+}
+
