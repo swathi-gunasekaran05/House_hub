@@ -93,53 +93,103 @@ Base.metadata.create_all(bind=engine)
 # ----------------- Seed Default Data -----------------
 ROOMMATES = ["Vaishali", "Kaviya", "Elakiya", "Swathi"]
 
+def load_demo_data(db: Session):
+    db.query(ExpenseModel).delete()
+    db.query(TaskModel).delete()
+    db.query(ShoppingModel).delete()
+    db.query(NoteModel).delete()
+
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    yesterday_str = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+    tomorrow_str = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    sample_splits_1 = [
+        {"user": "Vaishali", "shareAmount": 267.50, "paid": False},
+        {"user": "Kaviya", "shareAmount": 267.50, "paid": True},
+        {"user": "Elakiya", "shareAmount": 267.50, "paid": False},
+        {"user": "Swathi", "shareAmount": 267.50, "paid": True}
+    ]
+    sample_items_1 = [
+        {"name": "Rice (5kg bag)", "amount": 800.0},
+        {"name": "Fresh Vegetables", "amount": 250.0},
+        {"name": "Curry leaves & coriander", "amount": 20.0}
+    ]
+    db.add(ExpenseModel(
+        id="exp-1",
+        title="Supermarket Grocery Run",
+        date=today_str,
+        paid_by="Swathi",
+        total=1070.0,
+        items_json=json.dumps(sample_items_1),
+        splits_json=json.dumps(sample_splits_1)
+    ))
+
+    sample_splits_2 = [
+        {"user": "Vaishali", "shareAmount": 15.00, "paid": True},
+        {"user": "Kaviya", "shareAmount": 15.00, "paid": True},
+        {"user": "Elakiya", "shareAmount": 15.00, "paid": True},
+        {"user": "Swathi", "shareAmount": 15.00, "paid": False}
+    ]
+    sample_items_2 = [
+        {"name": "Arokya Milk (2 packets)", "amount": 60.0}
+    ]
+    db.add(ExpenseModel(
+        id="exp-2",
+        title="Morning Dairy Supply",
+        date=yesterday_str,
+        paid_by="Kaviya",
+        total=60.0,
+        items_json=json.dumps(sample_items_2),
+        splits_json=json.dumps(sample_splits_2)
+    ))
+
+    sample_splits_3 = [
+        {"user": "Vaishali", "shareAmount": 62.50, "paid": True},
+        {"user": "Kaviya", "shareAmount": 62.50, "paid": False},
+        {"user": "Elakiya", "shareAmount": 62.50, "paid": False},
+        {"user": "Swathi", "shareAmount": 62.50, "paid": False}
+    ]
+    sample_items_3 = [
+        {"name": "Floor cleaner & Harpic", "amount": 150.0},
+        {"name": "Dishwash bar & sponge", "amount": 100.0}
+    ]
+    db.add(ExpenseModel(
+        id="exp-3",
+        title="House Cleaning & Toiletries",
+        date=yesterday_str,
+        paid_by="Vaishali",
+        total=250.0,
+        items_json=json.dumps(sample_items_3),
+        splits_json=json.dumps(sample_splits_3)
+    ))
+
+    db.add(TaskModel(id="task-1", date=today_str, type="🍳 Cooking", assigned_to="Swathi", time="Morning & Lunch", note="Sambar, Potato fry & Rice", repeat="daily", completed=False))
+    db.add(TaskModel(id="task-2", date=today_str, type="🍽 Washing vessels", assigned_to="Kaviya", time="After meals", note="", repeat="daily", completed=True))
+    db.add(TaskModel(id="task-3", date=today_str, type="🧹 Sweeping", assigned_to="Vaishali", time="Evening", note="Living room & bedrooms", repeat="none", completed=False))
+    db.add(TaskModel(id="task-4", date=today_str, type="🗑 Taking garbage out", assigned_to="Elakiya", time="Night 9:00 PM", note="Wet & dry waste", repeat="daily", completed=False))
+    db.add(TaskModel(id="task-5", date=tomorrow_str, type="🍳 Cooking", assigned_to="Kaviya", time="Dinner", note="Chapatis and Dal", repeat="none", completed=False))
+    db.add(TaskModel(id="task-6", date=tomorrow_str, type="🚿 Bathroom cleaning", assigned_to="Elakiya", time="Morning", note="Common bathroom", repeat="weekly", completed=False))
+
+    db.add(ShoppingModel(id="shop-1", name="Milk (1 Litre)", added_by="Kaviya", date=today_str, purchased=False))
+    db.add(ShoppingModel(id="shop-2", name="Surf Excel Detergent", added_by="Vaishali", date=today_str, purchased=False))
+    db.add(ShoppingModel(id="shop-3", name="Colgate Toothpaste", added_by="Swathi", date=yesterday_str, purchased=True))
+    db.add(ShoppingModel(id="shop-4", name="Bathing Soaps (Dettol/Dove)", added_by="Elakiya", date=today_str, purchased=False))
+    db.add(ShoppingModel(id="shop-5", name="Garbage bags roll", added_by="Swathi", date=today_str, purchased=False))
+
+    db.add(NoteModel(id="note-1", content="Electricity bill needs to be paid before 10th. Total is around ₹1,400.", category="⚡ Bills & Utilities", author="Vaishali", time="Today, 10:15 AM"))
+    db.add(NoteModel(id="note-2", content="Gas cylinder is almost empty, please use the small burner carefully. I will book a refill today.", category="📌 General", author="Swathi", time="Yesterday, 8:40 PM"))
+    db.add(NoteModel(id="note-3", content="My college friend Ananya is visiting tomorrow evening for 2 hours.", category="🎉 Event / Friends coming", author="Kaviya", time="Yesterday, 6:00 PM"))
+    db.commit()
+
 def seed_database():
     db = SessionLocal()
     try:
-        # Seed users if not existing
+        # Ensure the 4 roommate accounts exist with default PIN (1234) if not already present
         for name in ROOMMATES:
             existing = db.query(UserModel).filter(UserModel.name == name).first()
             if not existing:
-                # Default PIN: 1234
                 db.add(UserModel(name=name, pin_hash=hash_pin("1234")))
         db.commit()
-
-        # Seed initial sample data if expenses table is empty
-        if db.query(ExpenseModel).count() == 0:
-            today_str = datetime.now().strftime("%Y-%m-%d")
-            sample_splits = [
-                {"user": "Vaishali", "shareAmount": 267.50, "paid": False},
-                {"user": "Kaviya", "shareAmount": 267.50, "paid": True},
-                {"user": "Elakiya", "shareAmount": 267.50, "paid": False},
-                {"user": "Swathi", "shareAmount": 267.50, "paid": True}
-            ]
-            sample_items = [
-                {"name": "Rice (5kg bag)", "amount": 800.0},
-                {"name": "Fresh Vegetables", "amount": 250.0},
-                {"name": "Curry leaves & coriander", "amount": 20.0}
-            ]
-            db.add(ExpenseModel(
-                id="exp-1",
-                title="Supermarket Grocery Run",
-                date=today_str,
-                paid_by="Swathi",
-                total=1070.0,
-                items_json=json.dumps(sample_items),
-                splits_json=json.dumps(sample_splits)
-            ))
-
-            db.add(TaskModel(id="task-1", date=today_str, type="🍳 Cooking", assigned_to="Swathi", time="Morning & Lunch", note="Sambar, Potato fry & Rice", completed=False))
-            db.add(TaskModel(id="task-2", date=today_str, type="🍽 Washing vessels", assigned_to="Kaviya", time="After meals", note="", completed=True))
-            db.add(TaskModel(id="task-3", date=today_str, type="🧹 Sweeping", assigned_to="Vaishali", time="Evening", note="Living room & bedrooms", completed=False))
-            db.add(TaskModel(id="task-4", date=today_str, type="🗑 Taking garbage out", assigned_to="Elakiya", time="Night 9:00 PM", note="Wet & dry waste", completed=False))
-
-            db.add(ShoppingModel(id="shop-1", name="Milk (1 Litre)", added_by="Kaviya", date=today_str, purchased=False))
-            db.add(ShoppingModel(id="shop-2", name="Surf Excel Detergent", added_by="Vaishali", date=today_str, purchased=False))
-            db.add(ShoppingModel(id="shop-3", name="Colgate Toothpaste", added_by="Swathi", date=today_str, purchased=True))
-
-            db.add(NoteModel(id="note-1", content="Electricity bill needs to be paid before 10th. Total is around ₹1,400.", category="⚡ Bills & Utilities", author="Vaishali", time="Today, 10:15 AM"))
-            db.add(NoteModel(id="note-2", content="Gas cylinder refill booked. Expected delivery tomorrow morning.", category="📌 General", author="Swathi", time="Yesterday, 8:40 PM"))
-            db.commit()
     finally:
         db.close()
 
@@ -183,8 +233,10 @@ class LoginRequest(BaseModel):
     pin: str
 
 class ChangePinRequest(BaseModel):
-    current_pin: str
-    new_pin: str
+    current_pin: Optional[str] = None
+    new_pin: Optional[str] = None
+    current_password: Optional[str] = None
+    new_password: Optional[str] = None
 
 class ExpenseCreate(BaseModel):
     id: Optional[str] = None
@@ -223,7 +275,7 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
     
     user = db.query(UserModel).filter(UserModel.name == req.username).first()
     if not user or not verify_pin(req.pin, user.pin_hash):
-        raise HTTPException(status_code=401, detail="Incorrect PIN")
+        raise HTTPException(status_code=401, detail="Incorrect PIN or password")
 
     token = jwt.encode(
         {"sub": req.username, "exp": datetime.utcnow() + timedelta(days=90)},
@@ -232,18 +284,28 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
     )
     return {"token": token, "username": req.username}
 
+@app.post("/api/auth/change-password")
 @app.post("/api/auth/change-pin")
 def change_pin(req: ChangePinRequest, current_user: str = Depends(get_current_user), db: Session = Depends(get_db)):
+    curr = req.current_pin or req.current_password or ""
+    new = req.new_pin or req.new_password or ""
+
+    if not curr:
+        raise HTTPException(status_code=400, detail="Current password/PIN is required")
+    if not new or len(new) < 4:
+        raise HTTPException(status_code=400, detail="New password/PIN must be at least 4 characters")
+
     user = db.query(UserModel).filter(UserModel.name == current_user).first()
-    if not user or not verify_pin(req.current_pin, user.pin_hash):
-        raise HTTPException(status_code=400, detail="Current PIN is incorrect")
+    if not user or not verify_pin(curr, user.pin_hash):
+        raise HTTPException(status_code=400, detail="Current password/PIN is incorrect")
     
-    if len(req.new_pin) < 4:
-        raise HTTPException(status_code=400, detail="New PIN must be at least 4 digits")
-    
-    user.pin_hash = hash_pin(req.new_pin)
+    user.pin_hash = hash_pin(new)
     db.commit()
-    return {"message": "PIN updated successfully"}
+    return {"message": "Password updated successfully"}
+
+@app.get("/api/auth/me")
+def get_me(current_user: str = Depends(get_current_user)):
+    return {"username": current_user}
 
 # ----------------- Synchronized Data Endpoint -----------------
 @app.get("/api/data")
@@ -315,16 +377,16 @@ def save_expense(exp: ExpenseCreate, current_user: str = Depends(get_current_use
             raise HTTPException(status_code=403, detail=f"Only {existing.paid_by} can edit this expense.")
         existing.title = exp.title
         existing.date = exp.date
-        existing.paid_by = exp.paidBy
         existing.total = exp.total
         existing.items_json = json.dumps(exp.items)
         existing.splits_json = json.dumps(exp.splits)
     else:
+        # Strict Rule: Paid by is always the authenticated user creating the expense
         new_exp = ExpenseModel(
             id=exp_id,
             title=exp.title,
             date=exp.date,
-            paid_by=exp.paidBy,
+            paid_by=current_user,
             total=exp.total,
             items_json=json.dumps(exp.items),
             splits_json=json.dumps(exp.splits)
@@ -348,20 +410,25 @@ def delete_expense(exp_id: str, current_user: str = Depends(get_current_user), d
     db.commit()
     return {"message": "Expense deleted"}
 
+@app.patch("/api/expenses/{exp_id}/toggle-my-split")
 @app.patch("/api/expenses/{exp_id}/splits/{username}/toggle")
-def toggle_split_paid(exp_id: str, username: str, current_user: str = Depends(get_current_user), db: Session = Depends(get_db)):
+def toggle_split_paid(exp_id: str, username: Optional[str] = None, current_user: str = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Security Rule: The server identifies the user strictly from the authenticated JWT session.
+    # It only modifies current_user's share, never trusting an arbitrary username from the frontend.
     expense = db.query(ExpenseModel).filter(ExpenseModel.id == exp_id).first()
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
     
     splits = json.loads(expense.splits_json)
+    found = False
     for s in splits:
-        if s["user"] == username:
-            # Payer can toggle received payment, or the user themselves can mark their own share
-            if current_user not in [expense.paid_by, username]:
-                raise HTTPException(status_code=403, detail="You do not have permission to modify this split.")
+        if s["user"] == current_user:
+            found = True
             s["paid"] = not s.get("paid", False)
             break
+            
+    if not found:
+        raise HTTPException(status_code=404, detail="You are not part of this expense split")
             
     expense.splits_json = json.dumps(splits)
     db.commit()
@@ -462,6 +529,8 @@ def save_note(note: NoteCreate, current_user: str = Depends(get_current_user), d
     existing = db.query(NoteModel).filter(NoteModel.id == note_id).first()
 
     if existing:
+        if existing.author != current_user:
+            raise HTTPException(status_code=403, detail=f"Only {existing.author} can edit this note.")
         existing.content = note.content
         existing.category = note.category
     else:
@@ -481,9 +550,28 @@ def save_note(note: NoteCreate, current_user: str = Depends(get_current_user), d
 def delete_note(note_id: str, current_user: str = Depends(get_current_user), db: Session = Depends(get_db)):
     note = db.query(NoteModel).filter(NoteModel.id == note_id).first()
     if note:
+        if note.author != current_user:
+            raise HTTPException(status_code=403, detail=f"Only {note.author} can delete this note.")
         db.delete(note)
         db.commit()
     return {"message": "Note deleted"}
+
+# ----------------- Shared Household Data Reset -----------------
+@app.post("/api/reset/blank")
+def reset_to_blank(current_user: str = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Clear all shared household data from database while keeping user accounts
+    db.query(ExpenseModel).delete()
+    db.query(TaskModel).delete()
+    db.query(ShoppingModel).delete()
+    db.query(NoteModel).delete()
+    db.commit()
+    return {"message": "All shared household data cleared from database"}
+
+@app.post("/api/reset/demo")
+def reset_to_demo(current_user: str = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Clear existing shared data and reload sample demo data
+    load_demo_data(db)
+    return {"message": "Sample demo data reloaded into database"}
 
 # ----------------- Static Files -----------------
 # Serves index.html, style.css, app.js directly from current folder

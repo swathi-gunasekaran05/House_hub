@@ -237,6 +237,7 @@ class HouseHubApp {
     this.expenseFilter = 'all'; // 'all', 'unsettled', 'mine', 'i_owe'
     this.notesTab = 'shopping'; // 'shopping', 'messages'
     this.activeExpenseId = null; // for detail modal
+    this.dashWorkFilter = 'my'; // 'my', 'all'
 
     this.init();
   }
@@ -289,7 +290,7 @@ class HouseHubApp {
         body: body ? JSON.stringify(body) : null
       });
       if (res.status === 401) {
-        this.openLoginModal();
+        this.logout();
         return null;
       }
       if (!res.ok) {
@@ -305,32 +306,50 @@ class HouseHubApp {
 
   async syncFromBackend() {
     const serverData = await this.apiRequest('/api/data');
-    if (serverData) {
-      this.data.activeUser = serverData.activeUser || this.data.activeUser;
+    if (serverData && serverData.activeUser) {
+      // Identity is determined strictly by the server's authenticated token
+      this.data.activeUser = serverData.activeUser;
       this.data.expenses = serverData.expenses || [];
       this.data.tasks = serverData.tasks || [];
       this.data.shopping = serverData.shopping || [];
       this.data.notes = serverData.notes || [];
       this.saveData();
       this.renderAll();
+      return true;
     }
+    return false;
   }
 
-  openLoginModal() {
-    const modal = document.getElementById('loginModal');
-    if (modal) {
-      const sel = document.getElementById('loginUserSelect');
-      if (sel) sel.value = this.data.activeUser || 'Swathi';
-      const pin = document.getElementById('loginPinInput');
-      if (pin) pin.value = '';
-      this.openModal('loginModal');
+  // ================= LOGIN & AUTH CONTROLS =================
+  selectLoginUser(username) {
+    const hiddenInput = document.getElementById('loginSelectedUser');
+    if (hiddenInput) hiddenInput.value = username;
+
+    document.querySelectorAll('.roommate-select-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-user') === username);
+    });
+
+    const promptUserEl = document.getElementById('loginPromptUserName');
+    if (promptUserEl) promptUserEl.textContent = username;
+
+    const errEl = document.getElementById('loginErrorMsg');
+    if (errEl) errEl.classList.add('hidden');
+
+    const pinInput = document.getElementById('loginPinInput');
+    if (pinInput) {
+      pinInput.value = '';
+      pinInput.focus();
     }
   }
 
   async handleLogin(event) {
     event.preventDefault();
-    const user = document.getElementById('loginUserSelect').value;
-    const pin = document.getElementById('loginPinInput').value.trim();
+    const user = document.getElementById('loginSelectedUser').value;
+    const pinInput = document.getElementById('loginPinInput');
+    const pin = pinInput ? pinInput.value.trim() : '';
+    const errEl = document.getElementById('loginErrorMsg');
+
+    if (errEl) errEl.classList.add('hidden');
 
     try {
       const res = await fetch('/api/auth/login', {
@@ -338,56 +357,161 @@ class HouseHubApp {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: user, pin: pin })
       });
+
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.detail || 'Incorrect PIN. Default is 1234.');
+        const msg = err.detail || 'Incorrect PIN. Default PIN is 1234.';
+        if (errEl) {
+          errEl.textContent = msg;
+          errEl.classList.remove('hidden');
+        } else {
+          alert(msg);
+        }
+        if (pinInput) {
+          pinInput.value = '';
+          pinInput.focus();
+        }
         return;
       }
+
       const data = await res.json();
       localStorage.setItem(TOKEN_KEY, data.token);
       this.data.activeUser = data.username;
       this.saveData();
-      this.closeModal('loginModal');
-      this.showToast(`Logged in as ${data.username}! ✨`);
+
+      // Reveal main app and hide login screen
+      const loginScreen = document.getElementById('loginScreen');
+      const appEl = document.getElementById('app');
+      if (loginScreen) loginScreen.classList.add('hidden');
+      if (appEl) appEl.style.display = 'flex';
+
       await this.syncFromBackend();
+      this.navTo('home');
+      this.showToast(`Good day, ${data.username}! ✨`);
     } catch (e) {
-      this.data.activeUser = user;
-      this.saveData();
-      this.closeModal('loginModal');
-      this.showToast(`Active user: ${user}`);
-      this.renderAll();
+      console.error('Login error', e);
+      if (errEl) {
+        errEl.textContent = 'Server connection error. Please try again.';
+        errEl.classList.remove('hidden');
+      }
     }
   }
 
   openChangePinModal() {
-    this.closeModal('userSwitchModal');
-    document.getElementById('currPinInput').value = '';
-    document.getElementById('newPinInput').value = '';
+    const userEl = document.getElementById('changePinUserName');
+    if (userEl) userEl.textContent = this.data.activeUser || '';
+
+    const currInput = document.getElementById('currPinInput');
+    const newInput = document.getElementById('newPinInput');
+    const confirmInput = document.getElementById('confirmPinInput');
+    if (currInput) currInput.value = '';
+    if (newInput) newInput.value = '';
+    if (confirmInput) confirmInput.value = '';
+
+    const errEl = document.getElementById('changePinErrorMsg');
+    if (errEl) {
+      errEl.textContent = '';
+      errEl.classList.add('hidden');
+    }
+
     this.openModal('changePinModal');
+    if (currInput) currInput.focus();
   }
 
   async handleChangePin(event) {
     event.preventDefault();
-    const current_pin = document.getElementById('currPinInput').value.trim();
-    const new_pin = document.getElementById('newPinInput').value.trim();
+    const currInput = document.getElementById('currPinInput');
+    const newInput = document.getElementById('newPinInput');
+    const confirmInput = document.getElementById('confirmPinInput');
+    const errEl = document.getElementById('changePinErrorMsg');
 
-    const res = await this.apiRequest('/api/auth/change-pin', 'POST', { current_pin, new_pin });
-    if (res) {
+    const current_pin = currInput ? currInput.value.trim() : '';
+    const new_pin = newInput ? newInput.value.trim() : '';
+    const confirm_pin = confirmInput ? confirmInput.value.trim() : '';
+
+    if (errEl) errEl.classList.add('hidden');
+
+    if (!current_pin) {
+      if (errEl) {
+        errEl.textContent = 'Please enter your current password or PIN.';
+        errEl.classList.remove('hidden');
+      }
+      return;
+    }
+
+    if (!new_pin || new_pin.length < 4) {
+      if (errEl) {
+        errEl.textContent = 'New password/PIN must be at least 4 characters long.';
+        errEl.classList.remove('hidden');
+      }
+      if (newInput) newInput.focus();
+      return;
+    }
+
+    if (confirmInput && new_pin !== confirm_pin) {
+      if (errEl) {
+        errEl.textContent = 'New password and confirmation do not match.';
+        errEl.classList.remove('hidden');
+      }
+      if (confirmInput) confirmInput.focus();
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
+      const res = await fetch('/api/auth/change-pin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ current_pin, new_pin })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const msg = err.detail || 'Could not update password. Please check your current password.';
+        if (errEl) {
+          errEl.textContent = msg;
+          errEl.classList.remove('hidden');
+        } else {
+          alert(msg);
+        }
+        if (currInput) currInput.focus();
+        return;
+      }
+
       this.closeModal('changePinModal');
-      this.showToast('Your security PIN has been updated!');
+      this.showToast('Security password updated successfully! ✨');
+    } catch (e) {
+      console.error('Change password error', e);
+      if (errEl) {
+        errEl.textContent = 'Network or server error. Please try again.';
+        errEl.classList.remove('hidden');
+      }
     }
   }
 
   logout() {
     localStorage.removeItem(TOKEN_KEY);
-    this.closeModal('userSwitchModal');
-    this.openLoginModal();
+    this.data.activeUser = null;
+
+    const loginScreen = document.getElementById('loginScreen');
+    const appEl = document.getElementById('app');
+    if (loginScreen) {
+      loginScreen.classList.remove('hidden');
+      const pinInput = document.getElementById('loginPinInput');
+      if (pinInput) pinInput.value = '';
+      const errEl = document.getElementById('loginErrorMsg');
+      if (errEl) errEl.classList.add('hidden');
+    }
+    if (appEl) appEl.style.display = 'none';
+
     this.showToast('Logged out.');
   }
 
   renderAll() {
     this.renderHeader();
-    this.renderUserSwitchModal();
     this.renderDashboard();
     this.renderExpensesPage();
     this.renderCalendarPage();
@@ -395,14 +519,26 @@ class HouseHubApp {
   }
 
   // Initialize App UI
-  init() {
-    this.renderAll();
+  async init() {
     this.updateTodayLabels();
 
     const token = localStorage.getItem(TOKEN_KEY);
+    const loginScreen = document.getElementById('loginScreen');
+    const appEl = document.getElementById('app');
+
     if (token) {
-      this.syncFromBackend();
+      const ok = await this.syncFromBackend();
+      if (ok && this.data.activeUser) {
+        if (loginScreen) loginScreen.classList.add('hidden');
+        if (appEl) appEl.style.display = 'flex';
+        this.renderAll();
+        return;
+      }
     }
+
+    // Not authenticated: Show dedicated login screen and hide main app
+    if (loginScreen) loginScreen.classList.remove('hidden');
+    if (appEl) appEl.style.display = 'none';
   }
 
   updateTodayLabels() {
@@ -435,52 +571,14 @@ class HouseHubApp {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ================= USER SWITCHING =================
+  // ================= HEADER PROFILE (NO SWITCHER) =================
   renderHeader() {
-    const active = this.data.activeUser || 'Swathi';
-    const initial = active.charAt(0);
+    const active = this.data.activeUser || '';
+    const initial = active ? active.charAt(0) : '?';
     const avatarEl = document.getElementById('headerAvatar');
     const nameEl = document.getElementById('headerUserName');
     if (avatarEl) avatarEl.textContent = initial;
     if (nameEl) nameEl.textContent = active;
-
-    // Attach click to open user switch modal
-    const userBtn = document.getElementById('userSwitchBtn');
-    if (userBtn) {
-      userBtn.onclick = () => this.openUserSwitchModal();
-    }
-  }
-
-  openUserSwitchModal() {
-    this.renderUserSwitchModal();
-    this.openModal('userSwitchModal');
-  }
-
-  renderUserSwitchModal() {
-    const grid = document.getElementById('userPickerGrid');
-    if (!grid) return;
-    const active = this.data.activeUser;
-
-    grid.innerHTML = ROOMMATES.map(roommate => `
-      <div class="user-pick-card ${roommate === active ? 'active' : ''}" onclick="app.selectUser('${roommate}')">
-        <div class="user-pick-avatar">${roommate.charAt(0)}</div>
-        <div class="user-pick-name">${roommate}</div>
-        ${roommate === active ? '<span class="status-indicator paid" style="margin-top:6px;font-size:10px;">Current</span>' : ''}
-      </div>
-    `).join('');
-  }
-
-  selectUser(userName) {
-    this.data.activeUser = userName;
-    this.saveData();
-    this.renderHeader();
-    this.closeModal('userSwitchModal');
-    this.showToast(`Switched user to ${userName}`);
-
-    // Re-render views with new perspective
-    this.renderDashboard();
-    this.renderExpensesPage();
-    this.renderCalendarPage();
   }
 
   // ================= MODAL CONTROLS =================
@@ -494,6 +592,15 @@ class HouseHubApp {
     if (modal) modal.classList.remove('open');
   }
 
+  openDataManagementModal() {
+    this.openModal('dataModal');
+  }
+
+  setDashWorkFilter(filter) {
+    this.dashWorkFilter = filter;
+    this.renderDashboard();
+  }
+
   // ================= DASHBOARD / HOME =================
   renderDashboard() {
     const user = this.data.activeUser;
@@ -503,29 +610,62 @@ class HouseHubApp {
     const greetingEl = document.getElementById('dashGreeting');
     if (greetingEl) greetingEl.textContent = `Good day, ${user}! ✨`;
 
-    // Calculate Dues for active user
+    // Calculate Dues and Net Balance for active user
     const balances = this.calculateBalances(user);
+    const netBalance = balances.othersOweMe - balances.iNeedToPay;
+    const netBalEl = document.getElementById('dashNetBalance');
+    const netSubEl = document.getElementById('dashNetBalanceSub');
+    if (netBalEl) {
+      if (netBalance > 0) {
+        netBalEl.textContent = `+${formatMoney(netBalance)}`;
+        netBalEl.style.color = '#86efac';
+        if (netSubEl) netSubEl.textContent = '(Others owe you net)';
+      } else if (netBalance < 0) {
+        netBalEl.textContent = `-${formatMoney(Math.abs(netBalance))}`;
+        netBalEl.style.color = '#fca5a5';
+        if (netSubEl) netSubEl.textContent = '(You owe net)';
+      } else {
+        netBalEl.textContent = '₹0.00';
+        netBalEl.style.color = '#c7d2fe';
+        if (netSubEl) netSubEl.textContent = '(All settled up)';
+      }
+    }
+
     const oweEl = document.getElementById('dashOweAmount');
     const recEl = document.getElementById('dashReceiveAmount');
     if (oweEl) oweEl.textContent = formatMoney(balances.iNeedToPay);
     if (recEl) recEl.textContent = formatMoney(balances.othersOweMe);
 
-    // Today's Work
-    const todayTasks = this.data.tasks.filter(t => t.date === today);
+    // Household Work (Filtered to My Tasks or All House Tasks)
+    const isMyOnly = (this.dashWorkFilter !== 'all');
+    const filteredTasks = isMyOnly
+      ? this.data.tasks.filter(t => t.date === today && t.assignedTo === user)
+      : this.data.tasks.filter(t => t.date === today);
+
     const countEl = document.getElementById('todayWorkCount');
-    if (countEl) countEl.textContent = todayTasks.length;
+    if (countEl) countEl.textContent = filteredTasks.length;
+
+    const headingEl = document.getElementById('workSectionHeading');
+    if (headingEl) {
+      headingEl.textContent = isMyOnly ? "My Tasks Today" : "All House Tasks Today";
+    }
+
+    const btnMy = document.getElementById('btnFilterMyTasks');
+    const btnAll = document.getElementById('btnFilterAllTasks');
+    if (btnMy) btnMy.classList.toggle('active', isMyOnly);
+    if (btnAll) btnAll.classList.toggle('active', !isMyOnly);
 
     const workListEl = document.getElementById('dashWorkList');
     if (workListEl) {
-      if (todayTasks.length === 0) {
+      if (filteredTasks.length === 0) {
         workListEl.innerHTML = `
           <div class="empty-state">
             <span class="empty-icon">☕</span>
-            <p>No household work scheduled for today. Enjoy!</p>
+            <p>${isMyOnly ? 'No household tasks assigned to you today. Enjoy!' : 'No household tasks scheduled for today. Enjoy!'}</p>
           </div>
         `;
       } else {
-        workListEl.innerHTML = todayTasks.map(t => this.renderWorkItemHTML(t)).join('');
+        workListEl.innerHTML = filteredTasks.map(t => this.renderWorkItemHTML(t)).join('');
       }
     }
 
@@ -829,25 +969,24 @@ class HouseHubApp {
     const modalTitle = document.getElementById('expenseModalTitle');
     const expIdInput = document.getElementById('expId');
     const expDateInput = document.getElementById('expDate');
-    const expPaidBySelect = document.getElementById('expPaidBy');
+    const expPaidBy = document.getElementById('expPaidBy');
+    const expPaidByDisplay = document.getElementById('expPaidByDisplay');
     const expTitleInput = document.getElementById('expTitle');
     const itemsContainer = document.getElementById('expenseItemsContainer');
     const checkboxesContainer = document.getElementById('expSplitCheckboxes');
 
-    // Populate PaidBy Select
-    expPaidBySelect.innerHTML = ROOMMATES.map(r => `
-      <option value="${r}">${r}</option>
-    `).join('');
+    const currentUser = this.data.activeUser;
 
     if (expenseToEdit) {
-      if (expenseToEdit.paidBy !== this.data.activeUser) {
+      if (expenseToEdit.paidBy !== currentUser) {
         alert(`Only ${expenseToEdit.paidBy}, who paid this amount, can edit this expense.`);
         return;
       }
       modalTitle.textContent = 'Edit Expense';
       expIdInput.value = expenseToEdit.id;
       expDateInput.value = expenseToEdit.date;
-      expPaidBySelect.value = expenseToEdit.paidBy;
+      if (expPaidBy) expPaidBy.value = expenseToEdit.paidBy;
+      if (expPaidByDisplay) expPaidByDisplay.value = `${expenseToEdit.paidBy} (You)`;
       expTitleInput.value = expenseToEdit.title;
 
       // Populate Items
@@ -870,7 +1009,8 @@ class HouseHubApp {
       modalTitle.textContent = 'Add Expense';
       expIdInput.value = '';
       expDateInput.value = getTodayDateStr();
-      expPaidBySelect.value = this.data.activeUser;
+      if (expPaidBy) expPaidBy.value = currentUser;
+      if (expPaidByDisplay) expPaidByDisplay.value = `${currentUser} (You)`;
       expTitleInput.value = '';
 
       // Default with 2 blank item rows
@@ -945,7 +1085,7 @@ class HouseHubApp {
 
     const id = document.getElementById('expId').value;
     const date = document.getElementById('expDate').value;
-    const paidBy = document.getElementById('expPaidBy').value;
+    const paidBy = this.data.activeUser; // Strictly the authenticated logged-in user
     const titleInput = document.getElementById('expTitle').value.trim();
 
     // Read items
@@ -1123,10 +1263,8 @@ class HouseHubApp {
       if (isPersonPayer) {
         actionHTML = `<span class="status-indicator paid">✓ Paid Entire Bill</span>`;
       } else {
-        // Can toggle if:
-        // 1. I am the person who owes (I can mark my share as paid)
-        // 2. I am the person who paid the total bill (I can acknowledge received payments)
-        const canToggle = isMe || isPayer;
+        // Strict Rule: Each roommate can ONLY mark THEIR OWN share as paid!
+        const canToggle = isMe;
 
         if (canToggle) {
           actionHTML = `
@@ -1135,7 +1273,7 @@ class HouseHubApp {
             </button>
           `;
         } else {
-          // Other roommates only see the status
+          // Other roommates only see the status badge
           actionHTML = `
             <span class="status-indicator ${isPaid ? 'paid' : 'pending'}">
               ${isPaid ? '☑ Paid' : '☐ Pending'}
@@ -1163,25 +1301,41 @@ class HouseHubApp {
     }).join('');
   }
 
-  toggleExpensePaidStatus(expenseId, userName) {
+  async toggleExpensePaidStatus(expenseId, userName) {
+    // Security: Only allow the logged-in user to mark their own share
+    if (userName !== this.data.activeUser) {
+      alert("You can only mark your own share as paid.");
+      return;
+    }
+
     const expense = this.data.expenses.find(e => e.id === expenseId);
     if (!expense) return;
 
+    // Optimistic local update
     const split = expense.splits.find(s => s.user === userName);
-    if (!split) return;
-
-    split.paid = !split.paid;
+    if (split) split.paid = !split.paid;
     this.saveData();
-    this.apiRequest('/api/expenses/' + expenseId + '/splits/' + userName + '/toggle', 'PATCH');
 
     this.renderExpenseDetailSplits(expense);
     this.renderExpensesPage();
     this.renderDashboard();
 
-    this.showToast(`${userName}'s share marked as ${split.paid ? 'Paid' : 'Pending'}.`);
+    const isPaid = split ? split.paid : false;
+    this.showToast(`Your share marked as ${isPaid ? 'Paid' : 'Pending'}.`);
+
+    // Call backend endpoint - server identifies user strictly from JWT session
+    const res = await this.apiRequest('/api/expenses/' + expenseId + '/toggle-my-split', 'PATCH');
+    if (res && res.splits) {
+      expense.splits = res.splits;
+      this.saveData();
+      this.renderExpenseDetailSplits(expense);
+      this.renderExpensesPage();
+      this.renderDashboard();
+    }
   }
 
   quickMarkPaid(expenseId, userName) {
+    if (userName !== this.data.activeUser) return;
     this.toggleExpensePaidStatus(expenseId, userName);
   }
 
@@ -1846,29 +2000,42 @@ class HouseHubApp {
     }
   }
 
-  resetToBlank() {
-    if (confirm("Start fresh with an empty house (clear all demo expenses, tasks & notes)?")) {
-      this.data = {
-        activeUser: this.data.activeUser || 'Swathi',
-        expenses: [],
-        tasks: [],
-        shopping: [],
-        notes: []
-      };
+  async resetToBlank() {
+    const confirmed = confirm(
+      "Start fresh with an empty house?\n\nThis will permanently delete all shared household data from the database, including expenses, payment statuses, tasks, shopping items, and notes.\n\nAll 4 roommate accounts will be preserved.\n\nAre you sure you want to proceed?"
+    );
+    if (!confirmed) return;
+
+    const res = await this.apiRequest('/api/reset/blank', 'POST');
+    if (res) {
+      this.data.expenses = [];
+      this.data.tasks = [];
+      this.data.shopping = [];
+      this.data.notes = [];
       this.saveData();
-      this.closeModal('userSwitchModal');
-      this.init();
-      this.showToast('Started fresh! Add your real expenses, tasks & notes.');
+      await this.syncFromBackend();
+      this.closeModal('dataModal');
+      this.renderAll();
+      this.showToast('Started fresh! Shared database data cleared.');
+    } else {
+      this.showToast('Failed to clear database data. Please try again.');
     }
   }
 
-  resetToDemo() {
-    if (confirm("Reload default sample demo data?")) {
-      this.data = getInitialData();
-      this.saveData();
-      this.closeModal('userSwitchModal');
-      this.init();
-      this.showToast('Demo data reloaded.');
+  async resetToDemo() {
+    const confirmed = confirm(
+      "Reload sample demo data into the database?\n\nThis will replace the current shared household data in the database with standard demo records."
+    );
+    if (!confirmed) return;
+
+    const res = await this.apiRequest('/api/reset/demo', 'POST');
+    if (res) {
+      await this.syncFromBackend();
+      this.closeModal('dataModal');
+      this.renderAll();
+      this.showToast('Demo data reloaded into database.');
+    } else {
+      this.showToast('Failed to load demo data. Please try again.');
     }
   }
 }

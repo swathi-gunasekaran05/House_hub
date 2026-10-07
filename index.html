@@ -11,6 +11,60 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Dedicated Roommate Login Screen -->
+  <div id="loginScreen" class="login-screen-wrapper">
+    <div class="login-card">
+      <div class="login-brand">
+        <span class="login-icon">🏡</span>
+        <h2>House Hub</h2>
+        <p class="login-subtitle">Private Roommate Portal • 4 Roommates</p>
+      </div>
+
+      <form id="loginForm" onsubmit="app.handleLogin(event)">
+        <div class="form-group" style="text-align:left;">
+          <label style="font-weight:700; font-size:13px; color:#334155;">Select Your Account *</label>
+          <div class="login-roommate-grid">
+            <button type="button" class="roommate-select-btn active" data-user="Vaishali" onclick="app.selectLoginUser('Vaishali')">
+              <span class="avatar-small">V</span>
+              <span>Vaishali</span>
+            </button>
+            <button type="button" class="roommate-select-btn" data-user="Kaviya" onclick="app.selectLoginUser('Kaviya')">
+              <span class="avatar-small">K</span>
+              <span>Kaviya</span>
+            </button>
+            <button type="button" class="roommate-select-btn" data-user="Elakiya" onclick="app.selectLoginUser('Elakiya')">
+              <span class="avatar-small">E</span>
+              <span>Elakiya</span>
+            </button>
+            <button type="button" class="roommate-select-btn" data-user="Swathi" onclick="app.selectLoginUser('Swathi')">
+              <span class="avatar-small">S</span>
+              <span>Swathi</span>
+            </button>
+          </div>
+          <input type="hidden" id="loginSelectedUser" value="Vaishali">
+        </div>
+
+        <div class="form-group" style="text-align:left;">
+          <label for="loginPinInput" style="font-weight:700; font-size:13px; color:#334155;">
+            Security Password / PIN for <span id="loginPromptUserName" style="color:var(--primary); font-weight:800;">Vaishali</span> *
+          </label>
+          <input type="password" id="loginPinInput" placeholder="Enter Password or PIN (Default: 1234)" maxlength="64" required autocomplete="current-password">
+        </div>
+
+        <div id="loginErrorMsg" class="login-error hidden"></div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; padding:14px; font-size:15px; font-weight:700; border-radius:12px; margin-top:8px;">
+          Unlock My Dashboard →
+        </button>
+
+        <div class="login-hint">
+          Each roommate has their own secure account.<br>
+          Default password is <strong>1234</strong>. You can change your password once logged in.
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="app">
     <!-- Top Header Bar -->
     <header class="app-header">
@@ -24,15 +78,14 @@
         </div>
       </div>
       <div class="header-right">
-        <!-- Active User Selector -->
-        <div class="user-pill" id="userSwitchBtn" title="Switch logged-in roommate">
+        <!-- Logged-in Roommate Profile & Actions -->
+        <div class="user-profile-badge">
           <div class="avatar-small" id="headerAvatar">S</div>
-          <div class="user-pill-info">
-            <span class="user-pill-label">Active User</span>
-            <strong class="user-pill-name" id="headerUserName">Swathi</strong>
-          </div>
-          <span class="switch-icon">⇄</span>
+          <span class="user-profile-name" id="headerUserName">Swathi</span>
         </div>
+        <button class="header-action-btn" onclick="app.openChangePinModal()" title="Update My Security Password / PIN">🔑 Password</button>
+        <button class="header-action-btn" onclick="app.openDataManagementModal()" title="Manage Shared House Data">⚙️ Data</button>
+        <button class="header-action-btn logout-btn" onclick="app.logout()" title="Log out from account">🚪 Logout</button>
       </div>
     </header>
 
@@ -45,6 +98,11 @@
         <div class="hero-card">
           <div class="hero-date" id="dashDate">Wednesday, 30 September</div>
           <h2 class="hero-greeting" id="dashGreeting">Good day, Swathi! ✨</h2>
+          <div class="hero-net-balance-row">
+            <span class="net-bal-label">Your Net Balance:</span>
+            <strong class="net-bal-value" id="dashNetBalance">₹0.00</strong>
+            <span class="net-bal-sub" id="dashNetBalanceSub">(Settled up)</span>
+          </div>
           <div class="balance-strip">
             <div class="balance-item pay">
               <span class="bal-label">You need to pay</span>
@@ -62,10 +120,16 @@
         <div class="card-section">
           <div class="section-title-row">
             <div class="title-with-badge">
-              <h3>Today's Work</h3>
+              <h3 id="workSectionHeading">My Tasks Today</h3>
               <span class="badge" id="todayWorkCount">0</span>
             </div>
-            <button class="text-btn" onclick="app.navTo('calendar')">View Calendar →</button>
+            <div class="work-header-actions">
+              <div class="dash-work-filter-pills">
+                <button type="button" class="dash-filter-pill active" id="btnFilterMyTasks" onclick="app.setDashWorkFilter('my')">My Tasks</button>
+                <button type="button" class="dash-filter-pill" id="btnFilterAllTasks" onclick="app.setDashWorkFilter('all')">All House</button>
+              </div>
+              <button class="text-btn" onclick="app.navTo('calendar')">Calendar →</button>
+            </div>
           </div>
           <div class="card work-card-list" id="dashWorkList">
             <!-- Injected via JS -->
@@ -109,6 +173,28 @@
           </div>
           <div class="card notes-preview-card" id="dashNotesPreview">
             <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Shared House Data Controls -->
+        <div class="card-section">
+          <div class="section-title-row">
+            <div class="title-with-badge">
+              <h3>Shared House Data</h3>
+            </div>
+          </div>
+          <div class="card house-data-card">
+            <p class="house-data-desc">
+              Manage database records for all 4 roommates. Your accounts and logins are always preserved.
+            </p>
+            <div class="house-data-buttons">
+              <button type="button" class="btn btn-danger-outline btn-compact" onclick="app.resetToBlank()" title="Clear shared database data">
+                🗑 Start Fresh
+              </button>
+              <button type="button" class="btn btn-secondary btn-compact" onclick="app.resetToDemo()" title="Reload sample demo data into database">
+                🔄 Reload Demo
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -292,79 +378,33 @@
 
     <!-- ================= MODALS ================= -->
 
-    <!-- Switch User Modal -->
-    <div class="modal-backdrop" id="userSwitchModal">
-      <div class="modal-sheet">
-        <div class="modal-header">
-          <h3>Who are you?</h3>
-          <button class="close-btn" onclick="app.closeModal('userSwitchModal')">✕</button>
-        </div>
-        <p class="modal-subtitle">Select your name to view your individual balance, dues, and actions.</p>
-        <div class="user-select-grid" id="userPickerGrid">
-          <!-- 4 Roommate buttons injected here -->
-        </div>
-        <div style="margin-top:14px; display:flex; gap:8px;">
-          <button type="button" class="btn btn-secondary btn-compact" style="flex:1;" onclick="app.openChangePinModal()">🔑 Change My PIN</button>
-          <button type="button" class="btn btn-danger-outline btn-compact" onclick="app.logout()">Logout</button>
-        </div>
-        <div style="margin-top:16px; border-top:1px solid var(--border-light); padding-top:12px; display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:12px; color:var(--text-muted);">House Data:</span>
-          <div style="display:flex; gap:8px;">
-            <button type="button" class="text-btn danger" onclick="app.resetToBlank()">Start Fresh</button>
-            <button type="button" class="text-btn" onclick="app.resetToDemo()">Reload Demo</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Secure Roommate Login Modal -->
-    <div class="modal-backdrop" id="loginModal">
-      <div class="modal-sheet">
-        <div class="modal-header">
-          <h3>🏡 Roommate Login</h3>
-        </div>
-        <p class="modal-subtitle">Private access for Vaishali, Kaviya, Elakiya, and Swathi.</p>
-        <form onsubmit="app.handleLogin(event)">
-          <div class="form-group">
-            <label>Select Roommate *</label>
-            <select id="loginUserSelect" required>
-              <option value="Swathi">Swathi</option>
-              <option value="Vaishali">Vaishali</option>
-              <option value="Kaviya">Kaviya</option>
-              <option value="Elakiya">Elakiya</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Security PIN *</label>
-            <input type="password" id="loginPinInput" placeholder="Enter PIN (Default: 1234)" required autocomplete="current-password">
-          </div>
-          <div style="font-size:11px; color:var(--text-muted); margin-bottom:14px;">
-            Default PIN for all 4 roommates is <strong>1234</strong>. You can change your PIN once logged in.
-          </div>
-          <button type="submit" class="btn btn-primary" style="width:100%;">Log In & Access House Hub</button>
-        </form>
-      </div>
-    </div>
-
-    <!-- Change PIN Modal -->
+    <!-- Change PIN / Password Modal -->
     <div class="modal-backdrop" id="changePinModal">
       <div class="modal-sheet">
         <div class="modal-header">
-          <h3>Change Your PIN</h3>
+          <h3>Update Password / PIN</h3>
           <button class="close-btn" onclick="app.closeModal('changePinModal')">✕</button>
         </div>
+        <p class="modal-subtitle">Update security credentials for <strong id="changePinUserName" style="color:var(--primary);"></strong></p>
         <form onsubmit="app.handleChangePin(event)">
           <div class="form-group">
-            <label>Current PIN *</label>
-            <input type="password" id="currPinInput" placeholder="Enter current PIN" required>
+            <label for="currPinInput">Current Password / PIN *</label>
+            <input type="password" id="currPinInput" placeholder="Enter current password or PIN" required autocomplete="current-password">
           </div>
           <div class="form-group">
-            <label>New PIN (minimum 4 digits) *</label>
-            <input type="password" id="newPinInput" placeholder="Enter new PIN" required>
+            <label for="newPinInput">New Password / PIN (minimum 4 characters) *</label>
+            <input type="password" id="newPinInput" placeholder="Enter new password (min. 4 chars)" required autocomplete="new-password">
           </div>
+          <div class="form-group">
+            <label for="confirmPinInput">Confirm New Password / PIN *</label>
+            <input type="password" id="confirmPinInput" placeholder="Re-enter new password to confirm" required autocomplete="new-password">
+          </div>
+
+          <div id="changePinErrorMsg" class="login-error hidden"></div>
+
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" onclick="app.closeModal('changePinModal')">Cancel</button>
-            <button type="submit" class="btn btn-primary">Update PIN</button>
+            <button type="submit" class="btn btn-primary" id="btnUpdatePassword">Update Password</button>
           </div>
         </form>
       </div>
@@ -387,10 +427,9 @@
               <input type="date" id="expDate" required>
             </div>
             <div class="form-group">
-              <label>Paid by *</label>
-              <select id="expPaidBy" required>
-                <!-- Roommates -->
-              </select>
+              <label>Paid by</label>
+              <input type="text" id="expPaidByDisplay" readonly class="form-input-readonly" value="">
+              <input type="hidden" id="expPaidBy" value="">
             </div>
           </div>
 
@@ -600,6 +639,41 @@
             <button type="submit" class="btn btn-primary">Save Note</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Shared House Data Modal -->
+    <div class="modal-backdrop" id="dataModal">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <h3>Shared House Data</h3>
+          <button class="close-btn" onclick="app.closeModal('dataModal')">✕</button>
+        </div>
+        <p class="modal-subtitle">Manage shared database records across all roommates. Roommate logins are always kept.</p>
+        
+        <div class="data-action-block">
+          <div class="data-action-info">
+            <strong>Start Fresh (Empty House)</strong>
+            <p>Permanently clears all shared expenses, payment statuses, tasks, shopping items, and notes from the database. Leaves roommate accounts intact.</p>
+          </div>
+          <button type="button" class="btn btn-danger-outline" style="width:100%; margin-top:10px;" onclick="app.resetToBlank()">
+            🗑 Start Fresh
+          </button>
+        </div>
+
+        <div class="data-action-block" style="margin-top:16px;">
+          <div class="data-action-info">
+            <strong>Reload Demo Data</strong>
+            <p>Replaces current shared data in the database with standard sample expenses, tasks, and notes.</p>
+          </div>
+          <button type="button" class="btn btn-secondary" style="width:100%; margin-top:10px;" onclick="app.resetToDemo()">
+            🔄 Reload Demo
+          </button>
+        </div>
+
+        <div class="modal-actions" style="margin-top:20px;">
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('dataModal')">Close</button>
+        </div>
       </div>
     </div>
 
