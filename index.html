@@ -186,6 +186,68 @@
           </div>
         </div>
 
+        <!-- ================= Month-Wise Dashboard Section ================= -->
+        <div class="card-section">
+          <div class="section-title-row">
+            <div class="title-with-badge">
+              <h3>Monthly Spending Dashboard</h3>
+            </div>
+            <div class="dash-month-selector">
+              <select id="dashMonthSelect" class="month-dropdown" onchange="app.onDashMonthChange(this.value)">
+                <!-- Dynamically populated options -->
+              </select>
+            </div>
+          </div>
+
+          <div class="card dash-monthly-card">
+            <div class="dash-month-header">
+              <div class="dash-month-info">
+                <span class="dash-month-tag" id="dashMonthActiveLabel">November 2026</span>
+                <span class="dash-month-sub" id="dashMonthExpenseCount">0 house expenses recorded</span>
+              </div>
+              <button type="button" class="btn btn-secondary btn-compact" onclick="app.navTo('expenses')">
+                View Full Split →
+              </button>
+            </div>
+
+            <!-- 4 Key Metrics -->
+            <div class="monthly-metrics-grid" style="margin-bottom:12px;">
+              <div class="month-stat-box purple">
+                <span class="mstat-lbl">🏡 We Spent Totally</span>
+                <strong class="mstat-val" id="dashTotalWeSpent">₹0.00</strong>
+                <span class="mstat-sub">Across all 4 roommates</span>
+              </div>
+
+              <div class="month-stat-box green">
+                <span class="mstat-lbl">💳 I Spent (My Paid)</span>
+                <strong class="mstat-val" id="dashTotalISpent">₹0.00</strong>
+                <span class="mstat-sub">My paid contributions</span>
+              </div>
+
+              <div class="month-stat-box amber">
+                <span class="mstat-lbl">⚖️ My Fair Share</span>
+                <strong class="mstat-val" id="dashMyFairShare">₹0.00</strong>
+                <span class="mstat-sub">My portion to bear</span>
+              </div>
+
+              <div class="month-stat-box blue">
+                <span class="mstat-lbl">🔄 Net Balance</span>
+                <strong class="mstat-val" id="dashMonthNetBalance">₹0.00</strong>
+                <span class="mstat-sub" id="dashMonthNetSub">Settled up</span>
+              </div>
+            </div>
+
+            <!-- Roommate Spending Distribution for Selected Month -->
+            <div class="month-roommate-section" style="margin-top:0;">
+              <div class="mbreakdown-header">
+                <span class="mbreakdown-title">Who Paid in <span id="dashRoommateMonthTitle">This Month</span>:</span>
+              </div>
+              <div class="spend-progress-bar" id="dashSpendProgressBar"></div>
+              <div class="roommate-spend-list" id="dashRoommateSpendList"></div>
+            </div>
+          </div>
+        </div>
+
         <!-- Today's Household Work -->
         <div class="card-section">
           <div class="section-title-row">
