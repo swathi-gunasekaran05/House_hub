@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from typing import List, Optional
 from datetime import datetime, timedelta
 
@@ -92,6 +93,40 @@ Base.metadata.create_all(bind=engine)
 
 # ----------------- Seed Default Data -----------------
 ROOMMATES = ["Vaishali", "Kaviya", "Elakiya", "Swathi"]
+
+def normalize_date_parts(date_str: str):
+    if not date_str:
+        return None
+    d_clean = str(date_str).split("T")[0].strip()
+    m1 = re.match(r"^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$", d_clean)
+    if m1:
+        y, m, d = int(m1.group(1)), int(m1.group(2)), int(m1.group(3))
+        return y, m, d, f"{y:04d}-{m:02d}-{d:02d}", f"{y:04d}-{m:02d}", f"{y:04d}"
+    m2 = re.match(r"^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$", d_clean)
+    if m2:
+        d, m, y = int(m2.group(1)), int(m2.group(2)), int(m2.group(3))
+        return y, m, d, f"{y:04d}-{m:02d}-{d:02d}", f"{y:04d}-{m:02d}", f"{y:04d}"
+    return None
+
+def categorize_expense(title: str, items: list = None) -> str:
+    combined = (str(title or "") + " " + " ".join([i.get("name", "") for i in (items or []) if isinstance(i, dict)])).lower()
+    if any(k in combined for k in ["grocery", "vegetable", "rice", "dal", "curry", "supermarket", "provision"]):
+        return "Groceries"
+    if any(k in combined for k in ["milk", "dairy", "curd", "egg", "butter", "paneer"]):
+        return "Dairy & Food"
+    if any(k in combined for k in ["bill", "electric", "current", "wifi", "internet", "gas", "cylinder", "water"]):
+        return "Utilities & Bills"
+    if any(k in combined for k in ["food", "dinner", "lunch", "breakfast", "swiggy", "zomato", "restaurant", "snack", "tea", "coffee"]):
+        return "Dining & Snacks"
+    if any(k in combined for k in ["fuel", "petrol", "diesel", "auto", "cab", "uber", "ola", "bus"]):
+        return "Transport & Fuel"
+    if any(k in combined for k in ["rent", "maintenance", "house", "cleaning", "maid", "cook"]):
+        return "Housing & Maintenance"
+    if any(k in combined for k in ["shopping", "clothes", "amazon", "flipkart", "myntra", "dress"]):
+        return "Shopping"
+    if any(k in combined for k in ["loan", "emi", "bike", "car", "service", "repair"]):
+        return "Vehicle & EMI"
+    return "Other Household"
 
 def load_demo_data(db: Session):
     db.query(ExpenseModel).delete()
@@ -386,6 +421,167 @@ def get_all_data(current_user: str = Depends(get_current_user), db: Session = De
             }
             for n in notes
         ]
+    }
+
+# ----------------- Analytics & Financial Dashboard API -----------------
+@app.get("/api/analytics/dashboard")
+def get_dashboard_analytics(
+    period: str = "all",
+    ref_date: Optional[str] = None,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    expenses = db.query(ExpenseModel).order_by(ExpenseModel.date.desc()).all()
+
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    current_ym = today_str[:7]
+    current_year = today_str[:4]
+
+    target_date = ref_date or today_str
+    norm_target = normalize_date_parts(target_date)
+    target_ymd = norm_target[3] if norm_target else today_str
+    target_ym = norm_target[4] if norm_target else current_ym
+    target_y = norm_target[5] if norm_target else current_year
+
+    all_time_total = 0.0
+    today_total = 0.0
+    this_month_total = 0.0
+    this_year_total = 0.0
+
+    filtered_expenses = []
+    cat_totals = {}
+    roommate_stats = {r: {"name": r, "paid": 0.0, "share": 0.0, "net": 0.0} for r in ROOMMATES}
+
+    daily_map = {}
+    monthly_map = {}
+    yearly_map = {}
+
+    for e in expenses:
+        total_val = float(e.total or 0.0)
+        norm = normalize_date_parts(e.date)
+        e_ymd = norm[3] if norm else str(e.date)[:10]
+        e_ym = norm[4] if norm else e_ymd[:7]
+        e_y = norm[5] if norm else e_ymd[:4]
+
+        # Top 4 KPI totals
+        all_time_total += total_val
+        if e_ymd == today_str:
+            today_total += total_val
+        if e_ym == current_ym:
+            this_month_total += total_val
+        if e_y == current_year:
+            this_year_total += total_val
+
+        # Aggregate across trend maps
+        daily_map[e_ymd] = daily_map.get(e_ymd, 0.0) + total_val
+        monthly_map[e_ym] = monthly_map.get(e_ym, 0.0) + total_val
+        yearly_map[e_y] = yearly_map.get(e_y, 0.0) + total_val
+
+        # Filter for the active period
+        include_in_period = False
+        if period == "day":
+            include_in_period = (e_ymd == target_ymd)
+        elif period == "month":
+            include_in_period = (e_ym == target_ym)
+        elif period == "year":
+            include_in_period = (e_y == target_y)
+        else:
+            include_in_period = True
+
+        try:
+            items = json.loads(e.items_json) if e.items_json else []
+        except:
+            items = []
+        try:
+            splits = json.loads(e.splits_json) if e.splits_json else []
+        except:
+            splits = []
+
+        if include_in_period:
+            filtered_expenses.append({
+                "id": e.id,
+                "title": e.title,
+                "date": e_ymd,
+                "paidBy": e.paid_by,
+                "total": total_val,
+                "items": items,
+                "splits": splits
+            })
+
+            cat = categorize_expense(e.title, items)
+            cat_totals[cat] = cat_totals.get(cat, 0.0) + total_val
+
+            if e.paid_by in roommate_stats:
+                roommate_stats[e.paid_by]["paid"] += total_val
+
+            for s in splits:
+                u = s.get("user")
+                amt = float(s.get("shareAmount", 0.0))
+                if u in roommate_stats:
+                    roommate_stats[u]["share"] += amt
+
+    for r in ROOMMATES:
+        roommate_stats[r]["paid"] = round(roommate_stats[r]["paid"], 2)
+        roommate_stats[r]["share"] = round(roommate_stats[r]["share"], 2)
+        roommate_stats[r]["net"] = round(roommate_stats[r]["paid"] - roommate_stats[r]["share"], 2)
+
+    period_total = sum(e["total"] for e in filtered_expenses)
+    categories_list = [
+        {
+            "category": cat,
+            "total": round(amt, 2),
+            "percentage": round((amt / period_total * 100), 1) if period_total > 0 else 0.0
+        }
+        for cat, amt in sorted(cat_totals.items(), key=lambda x: x[1], reverse=True)
+    ]
+
+    trend_daily = [{"date": d, "amount": round(amt, 2)} for d, amt in sorted(daily_map.items())]
+    trend_monthly = [{"month": m, "amount": round(amt, 2)} for m, amt in sorted(monthly_map.items())]
+    trend_yearly = [{"year": y, "amount": round(amt, 2)} for y, amt in sorted(yearly_map.items())]
+
+    # Calculate Pending Settlements (Pairwise dues: who owes whom)
+    settlements_map = {}
+    for e in expenses:
+        payer = e.paid_by
+        try:
+            e_splits = json.loads(e.splits_json) if e.splits_json else []
+        except:
+            e_splits = []
+        for s in e_splits:
+            debtor = s.get("user")
+            if debtor and debtor != payer and not s.get("paid"):
+                amt = float(s.get("shareAmount", 0.0))
+                if amt > 0:
+                    key = (debtor, payer)
+                    settlements_map[key] = settlements_map.get(key, 0.0) + amt
+
+    pending_settlements = [
+        {"from_user": debtor, "to_user": payer, "amount": round(amt, 2)}
+        for (debtor, payer), amt in sorted(settlements_map.items(), key=lambda x: x[1], reverse=True)
+    ]
+
+    return {
+        "kpi": {
+            "total_expenses": round(all_time_total, 2),
+            "today_expenses": round(today_total, 2),
+            "month_expenses": round(this_month_total, 2),
+            "year_expenses": round(this_year_total, 2),
+            "period_total": round(period_total, 2),
+            "period": period,
+            "target_date": target_ymd,
+            "target_month": target_ym,
+            "target_year": target_y,
+            "transaction_count": len(filtered_expenses)
+        },
+        "roommate_summary": list(roommate_stats.values()),
+        "categories": categories_list,
+        "recent_expenses": filtered_expenses[:10],
+        "pending_settlements": pending_settlements,
+        "trends": {
+            "daily": trend_daily,
+            "monthly": trend_monthly,
+            "yearly": trend_yearly
+        }
     }
 
 # ----------------- Expenses CRUD -----------------

@@ -29,25 +29,124 @@ function calculateExactSplits(totalAmount, splitUsers, paidBy) {
   });
 }
 
+// Universal date normalizer: extracts { year, month, day, ymd, ym, y } from any format
+function parseDateParts(dateInput) {
+  if (!dateInput) return null;
+  const str = String(dateInput).split('T')[0].trim();
+  // YYYY-MM-DD or YYYY/MM/DD
+  let m = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (m) {
+    const y = parseInt(m[1], 10);
+    const mo = parseInt(m[2], 10);
+    const d = parseInt(m[3], 10);
+    return {
+      year: y,
+      month: mo,
+      day: d,
+      ymd: `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
+      ym: `${y}-${String(mo).padStart(2, '0')}`,
+      y: String(y)
+    };
+  }
+  // DD-MM-YYYY or DD/MM/YYYY
+  m = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (m) {
+    const d = parseInt(m[1], 10);
+    const mo = parseInt(m[2], 10);
+    const y = parseInt(m[3], 10);
+    return {
+      year: y,
+      month: mo,
+      day: d,
+      ymd: `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
+      ym: `${y}-${String(mo).padStart(2, '0')}`,
+      y: String(y)
+    };
+  }
+  const dt = new Date(str);
+  if (!isNaN(dt.getTime())) {
+    const y = dt.getFullYear();
+    const mo = dt.getMonth() + 1;
+    const d = dt.getDate();
+    return {
+      year: y,
+      month: mo,
+      day: d,
+      ymd: `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
+      ym: `${y}-${String(mo).padStart(2, '0')}`,
+      y: String(y)
+    };
+  }
+  return null;
+}
+
 // Format currency in Indian Rupee format
 function formatMoney(amount) {
   const val = Number(amount || 0);
+  if (isNaN(val)) return '₹0.00';
   return '₹' + val.toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
 }
 
+function formatMoneyCompact(amount) {
+  const val = Number(amount || 0);
+  if (isNaN(val)) return '₹0';
+  return '₹' + Math.round(val).toLocaleString('en-IN');
+}
+
 // Format readable date
 function formatDisplayDate(dateStr) {
-  if (!dateStr) return '';
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const d = new Date(year, month - 1, day);
+  const norm = parseDateParts(dateStr);
+  if (!norm) return String(dateStr || '');
+  const d = new Date(norm.year, norm.month - 1, norm.day);
   return d.toLocaleDateString('en-IN', {
     weekday: 'short',
     day: 'numeric',
     month: 'short'
   });
+}
+
+function formatDisplayDateWithYear(dateStr) {
+  const norm = parseDateParts(dateStr);
+  if (!norm) return String(dateStr || '');
+  const d = new Date(norm.year, norm.month - 1, norm.day);
+  return d.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+}
+
+// Category classifier
+function getExpenseCategoryName(title = '', items = []) {
+  const text = (String(title || '') + ' ' + (items || []).map(i => (typeof i === 'object' ? (i.name || '') : '')).join(' ')).toLowerCase();
+  if (text.includes('grocery') || text.includes('vegetable') || text.includes('rice') || text.includes('dal') || text.includes('supermarket') || text.includes('curry') || text.includes('provision')) {
+    return 'Groceries & Provisions';
+  }
+  if (text.includes('milk') || text.includes('dairy') || text.includes('curd') || text.includes('egg') || text.includes('butter') || text.includes('paneer')) {
+    return 'Dairy & Daily Food';
+  }
+  if (text.includes('bill') || text.includes('electric') || text.includes('wifi') || text.includes('gas') || text.includes('water') || text.includes('cylinder') || text.includes('current')) {
+    return 'Utilities & House Bills';
+  }
+  if (text.includes('food') || text.includes('dinner') || text.includes('lunch') || text.includes('swiggy') || text.includes('zomato') || text.includes('snack') || text.includes('tea') || text.includes('coffee')) {
+    return 'Dining & Snacks';
+  }
+  if (text.includes('fuel') || text.includes('petrol') || text.includes('diesel') || text.includes('auto') || text.includes('cab') || text.includes('uber') || text.includes('ola')) {
+    return 'Transport & Fuel';
+  }
+  if (text.includes('rent') || text.includes('house') || text.includes('maintenance') || text.includes('cleaning') || text.includes('maid') || text.includes('utensils')) {
+    return 'Housing & Maintenance';
+  }
+  if (text.includes('shop') || text.includes('cloth') || text.includes('amazon') || text.includes('myntra') || text.includes('dress') || text.includes('flipkart')) {
+    return 'Shopping';
+  }
+  if (text.includes('loan') || text.includes('emi') || text.includes('bike') || text.includes('car') || text.includes('service') || text.includes('repair')) {
+    return 'Vehicle & EMI';
+  }
+  return 'Other Household';
 }
 
 // Icon detector matching screenshot UI
@@ -296,6 +395,20 @@ class HouseHubApp {
     this.notesTab = 'shopping'; // 'shopping', 'messages'
     this.activeExpenseId = null; // for detail modal
     this.dashWorkFilter = 'my'; // 'my', 'all'
+
+    // Dashboard Time Filters state
+    this.dashPeriod = 'month'; // 'all', 'day', 'month', 'year'
+    this.dashDay = getTodayDateStr();
+    this.dashMonth = getTodayDateStr().substring(0, 7);
+    this.dashYear = String(new Date().getFullYear());
+
+    // Dedicated Track Expenses Page state
+    this.trackView = 'daily'; // 'daily', 'monthly', 'yearly'
+    this.trackDate = getTodayDateStr();
+    this.trackMonth = getTodayDateStr().substring(0, 7);
+    this.trackYear = String(new Date().getFullYear());
+
+    this.charts = {};
 
     this.init();
   }
@@ -688,6 +801,7 @@ class HouseHubApp {
   renderAll() {
     this.renderHeader();
     this.renderDashboard();
+    this.renderTrackPage();
     this.renderExpensesPage();
     this.renderCalendarPage();
     this.renderNotesPage();
@@ -739,6 +853,7 @@ class HouseHubApp {
 
     // Trigger specific page renders
     if (pageName === 'home') this.renderDashboard();
+    if (pageName === 'track') this.renderTrackPage();
     if (pageName === 'expenses') this.renderExpensesPage();
     if (pageName === 'calendar') this.renderCalendarPage();
     if (pageName === 'notes') this.renderNotesPage();
@@ -776,32 +891,536 @@ class HouseHubApp {
     this.renderDashboard();
   }
 
-  // ================= DASHBOARD / HOME =================
+  // ================= UNIFIED FINANCIAL & ANALYTICAL CALCULATION ENGINE =================
+  calculateAnalytics(expenses = this.data.expenses, activeUser = this.data.activeUser, period = 'all', refValue = null) {
+    const todayYMD = getTodayDateStr();
+    const currentYM = todayYMD.substring(0, 7);
+    const currentY = todayYMD.substring(0, 4);
+
+    let allTimeTotal = 0;
+    let todayTotal = 0;
+    let thisMonthTotal = 0;
+    let thisYearTotal = 0;
+
+    const filteredExpenses = [];
+    const roommateStats = {
+      Vaishali: { name: 'Vaishali', paid: 0, share: 0, net: 0, count: 0 },
+      Kaviya: { name: 'Kaviya', paid: 0, share: 0, net: 0, count: 0 },
+      Elakiya: { name: 'Elakiya', paid: 0, share: 0, net: 0, count: 0 },
+      Swathi: { name: 'Swathi', paid: 0, share: 0, net: 0, count: 0 }
+    };
+    const categoryTotals = {};
+    const debtMap = {}; // Pairwise unsettled debt: { 'debtor->payer': amount }
+
+    // First pass: Calculate top 4 overall KPIs across entire database
+    (expenses || []).forEach(exp => {
+      const amt = parseFloat(exp.total) || 0;
+      const norm = parseDateParts(exp.date);
+      const eYMD = norm ? norm.ymd : String(exp.date || todayYMD).substring(0, 10);
+      const eYM = norm ? norm.ym : eYMD.substring(0, 7);
+      const eY = norm ? norm.y : eYMD.substring(0, 4);
+
+      allTimeTotal += amt;
+      if (eYMD === todayYMD) todayTotal += amt;
+      if (eYM === currentYM) thisMonthTotal += amt;
+      if (eY === currentY) thisYearTotal += amt;
+
+      // Filter for requested period
+      let includeInPeriod = false;
+      if (period === 'day') {
+        const targetDate = refValue || todayYMD;
+        includeInPeriod = (eYMD === targetDate);
+      } else if (period === 'month') {
+        const targetMonth = refValue || currentYM;
+        includeInPeriod = (eYM === targetMonth);
+      } else if (period === 'year') {
+        const targetYear = refValue || currentY;
+        includeInPeriod = (eY === targetYear);
+      } else {
+        includeInPeriod = true; // 'all'
+      }
+
+      if (includeInPeriod) {
+        filteredExpenses.push({
+          ...exp,
+          total: amt,
+          normYMD: eYMD,
+          normYM: eYM,
+          normY: eY
+        });
+
+        // Roommate paid
+        if (roommateStats[exp.paidBy]) {
+          roommateStats[exp.paidBy].paid += amt;
+          roommateStats[exp.paidBy].count += 1;
+        }
+
+        // Roommate fair share allocations
+        if (Array.isArray(exp.splits)) {
+          exp.splits.forEach(s => {
+            const u = s.user;
+            const sAmt = parseFloat(s.shareAmount) || 0;
+            if (roommateStats[u]) {
+              roommateStats[u].share += sAmt;
+            }
+          });
+        }
+
+        // Categories aggregation
+        const cat = getExpenseCategoryName(exp.title, exp.items);
+        categoryTotals[cat] = (categoryTotals[cat] || 0) + amt;
+      }
+
+      // Unsettled split debts (pairwise settlements: who owes whom)
+      if (Array.isArray(exp.splits)) {
+        exp.splits.forEach(s => {
+          if (!s.paid && s.user && s.user !== exp.paidBy) {
+            const sAmt = parseFloat(s.shareAmount) || 0;
+            if (sAmt > 0) {
+              const pairKey = `${s.user}->${exp.paidBy}`;
+              debtMap[pairKey] = (debtMap[pairKey] || 0) + sAmt;
+            }
+          }
+        });
+      }
+    });
+
+    // Finalize Roommate net balances: Net = Paid - Fair Share
+    ROOMMATES.forEach(r => {
+      roommateStats[r].paid = Math.round(roommateStats[r].paid * 100) / 100;
+      roommateStats[r].share = Math.round(roommateStats[r].share * 100) / 100;
+      roommateStats[r].net = Math.round((roommateStats[r].paid - roommateStats[r].share) * 100) / 100;
+    });
+
+    // Period total and transactions count
+    const periodTotal = Math.round(filteredExpenses.reduce((sum, e) => sum + e.total, 0) * 100) / 100;
+
+    // Highest categories list sorted descending
+    const categoriesList = Object.entries(categoryTotals).map(([cat, total]) => ({
+      category: cat,
+      total: Math.round(total * 100) / 100,
+      percentage: periodTotal > 0 ? Math.round((total / periodTotal) * 1000) / 10 : 0
+    })).sort((a, b) => b.total - a.total);
+
+    // Pending settlements list sorted descending
+    const pendingSettlements = Object.entries(debtMap).map(([key, amt]) => {
+      const [fromUser, toUser] = key.split('->');
+      return {
+        fromUser,
+        toUser,
+        amount: Math.round(amt * 100) / 100
+      };
+    }).sort((a, b) => b.amount - a.amount);
+
+    // Build Chart Data & Table Rows matching 100%
+    const chartData = this.buildTrendSeries(filteredExpenses, expenses, period, refValue);
+
+    return {
+      kpis: {
+        totalExpenses: Math.round(allTimeTotal * 100) / 100,
+        todayExpenses: Math.round(todayTotal * 100) / 100,
+        thisMonthExpenses: Math.round(thisMonthTotal * 100) / 100,
+        thisYearExpenses: Math.round(thisYearTotal * 100) / 100,
+        periodTotal,
+        transactionCount: filteredExpenses.length
+      },
+      filteredExpenses,
+      roommateStats,
+      categoriesList,
+      pendingSettlements,
+      chartData
+    };
+  }
+
+  // Generate exact trend data points and matching table rows
+  buildTrendSeries(filteredExpenses, allExpenses, period, refValue) {
+    const todayYMD = getTodayDateStr();
+    const currentYM = todayYMD.substring(0, 7);
+    const currentY = todayYMD.substring(0, 4);
+
+    const labels = [];
+    const values = [];
+    const tableRows = [];
+    let tableTotal = 0;
+
+    if (period === 'day') {
+      // 7-day rolling window ending on target day
+      const targetDateStr = refValue || todayYMD;
+      const [tY, tM, tD] = targetDateStr.split('-').map(Number);
+      const targetDate = new Date(tY, tM - 1, tD);
+
+      const daySums = {};
+      const dayCounts = {};
+
+      for (let i = 6; i >= 0; i--) {
+        const cur = new Date(targetDate);
+        cur.setDate(targetDate.getDate() - i);
+        const yStr = cur.getFullYear();
+        const mStr = String(cur.getMonth() + 1).padStart(2, '0');
+        const dStr = String(cur.getDate()).padStart(2, '0');
+        const ymdKey = `${yStr}-${mStr}-${dStr}`;
+        daySums[ymdKey] = 0;
+        dayCounts[ymdKey] = 0;
+      }
+
+      (allExpenses || []).forEach(e => {
+        const norm = parseDateParts(e.date);
+        const ymd = norm ? norm.ymd : String(e.date || '').substring(0, 10);
+        if (daySums.hasOwnProperty(ymd)) {
+          daySums[ymd] += parseFloat(e.total) || 0;
+          dayCounts[ymd] += 1;
+        }
+      });
+
+      for (const [ymdKey, totalAmt] of Object.entries(daySums)) {
+        const norm = parseDateParts(ymdKey);
+        const dObj = new Date(norm.year, norm.month - 1, norm.day);
+        const shortLabel = dObj.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+        const roundedAmt = Math.round(totalAmt * 100) / 100;
+        labels.push(shortLabel);
+        values.push(roundedAmt);
+        tableRows.push({
+          key: ymdKey,
+          label: `${shortLabel}${ymdKey === targetDateStr ? ' (Selected)' : ''}`,
+          amount: roundedAmt,
+          count: dayCounts[ymdKey] || 0,
+          isTarget: (ymdKey === targetDateStr)
+        });
+        tableTotal += roundedAmt;
+      }
+
+    } else if (period === 'month') {
+      // Group expenses by date within the selected month
+      const targetMonth = refValue || currentYM;
+      const [yNum, mNum] = targetMonth.split('-').map(Number);
+      const daysInMonth = new Date(yNum, mNum, 0).getDate();
+
+      const dayMap = {};
+      const countMap = {};
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dKey = `${targetMonth}-${String(d).padStart(2, '0')}`;
+        dayMap[dKey] = 0;
+        countMap[dKey] = 0;
+      }
+
+      filteredExpenses.forEach(e => {
+        const ymd = e.normYMD || String(e.date || '').substring(0, 10);
+        if (dayMap.hasOwnProperty(ymd)) {
+          dayMap[ymd] += e.total;
+          countMap[ymd] += 1;
+        }
+      });
+
+      // Chart points for all days of the month
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dKey = `${targetMonth}-${String(d).padStart(2, '0')}`;
+        const amt = Math.round(dayMap[dKey] * 100) / 100;
+        labels.push(`${d}`);
+        values.push(amt);
+      }
+
+      // For the values table beside chart: List days that have recorded expenses (or all days if <= 7)
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dKey = `${targetMonth}-${String(d).padStart(2, '0')}`;
+        const amt = Math.round(dayMap[dKey] * 100) / 100;
+        const cnt = countMap[dKey] || 0;
+        if (amt > 0 || daysInMonth <= 7) {
+          const norm = parseDateParts(dKey);
+          const dObj = new Date(norm.year, norm.month - 1, norm.day);
+          const formattedDate = dObj.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+          tableRows.push({
+            key: dKey,
+            label: formattedDate,
+            amount: amt,
+            count: cnt
+          });
+        }
+        tableTotal += amt;
+      }
+
+      if (tableRows.length === 0) {
+        tableRows.push({
+          key: targetMonth,
+          label: 'No expenses recorded',
+          amount: 0,
+          count: 0
+        });
+      }
+
+    } else if (period === 'year') {
+      const targetYear = refValue || currentY;
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthSums = new Array(12).fill(0);
+      const monthCounts = new Array(12).fill(0);
+
+      filteredExpenses.forEach(e => {
+        const norm = parseDateParts(e.date);
+        if (norm && norm.y === targetYear) {
+          const mIdx = norm.month - 1;
+          if (mIdx >= 0 && mIdx < 12) {
+            monthSums[mIdx] += e.total;
+            monthCounts[mIdx] += 1;
+          }
+        }
+      });
+
+      for (let i = 0; i < 12; i++) {
+        const amt = Math.round(monthSums[i] * 100) / 100;
+        const mLabel = `${monthNames[i]} ${targetYear}`;
+        labels.push(monthNames[i]);
+        values.push(amt);
+        tableRows.push({
+          key: `${targetYear}-${String(i + 1).padStart(2, '0')}`,
+          label: mLabel,
+          amount: amt,
+          count: monthCounts[i]
+        });
+        tableTotal += amt;
+      }
+
+    } else {
+      const allMonthsMap = {};
+      const allCountsMap = {};
+
+      const now = new Date();
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const ymKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        allMonthsMap[ymKey] = 0;
+        allCountsMap[ymKey] = 0;
+      }
+
+      (allExpenses || []).forEach(e => {
+        const norm = parseDateParts(e.date);
+        const ym = norm ? norm.ym : String(e.date || '').substring(0, 7);
+        allMonthsMap[ym] = (allMonthsMap[ym] || 0) + (parseFloat(e.total) || 0);
+        allCountsMap[ym] = (allCountsMap[ym] || 0) + 1;
+      });
+
+      const sortedMonths = Object.keys(allMonthsMap).sort();
+      sortedMonths.forEach(ymKey => {
+        const [y, m] = ymKey.split('-').map(Number);
+        const dObj = new Date(y, m - 1, 1);
+        const mLabel = dObj.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+        const amt = Math.round(allMonthsMap[ymKey] * 100) / 100;
+        labels.push(mLabel);
+        values.push(amt);
+        tableRows.push({
+          key: ymKey,
+          label: mLabel,
+          amount: amt,
+          count: allCountsMap[ymKey] || 0
+        });
+        tableTotal += amt;
+      });
+    }
+
+    return {
+      labels,
+      values,
+      tableRows,
+      tableTotal: Math.round(tableTotal * 100) / 100
+    };
+  }
+
+  // ================= INTERACTIVE LINE CHART RENDERER (CHART.JS + SVG FALLBACK) =================
+  renderLineChart(canvasId, labels, dataPoints, options = {}) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+
+    if (this.charts[canvasId]) {
+      try {
+        this.charts[canvasId].destroy();
+      } catch (err) {
+        console.warn('Error clearing existing chart:', err);
+      }
+      delete this.charts[canvasId];
+    }
+
+    if (typeof window.Chart !== 'undefined') {
+      try {
+        const ctx = canvas.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 240);
+        gradient.addColorStop(0, 'rgba(79, 70, 229, 0.32)');
+        gradient.addColorStop(1, 'rgba(79, 70, 229, 0.01)');
+
+        this.charts[canvasId] = new window.Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: options.datasetLabel || 'Spending',
+              data: dataPoints,
+              borderColor: '#4f46e5',
+              backgroundColor: gradient,
+              fill: true,
+              tension: 0.35,
+              borderWidth: 2.5,
+              pointBackgroundColor: '#ffffff',
+              pointBorderColor: '#4f46e5',
+              pointBorderWidth: 2,
+              pointRadius: 4.5,
+              pointHoverRadius: 7,
+              pointHoverBackgroundColor: '#4f46e5',
+              pointHoverBorderColor: '#ffffff',
+              pointHoverBorderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: 'index',
+              intersect: false
+            },
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                backgroundColor: '#0f172a',
+                titleColor: '#f8fafc',
+                bodyColor: '#38bdf8',
+                titleFont: { size: 12, family: 'Plus Jakarta Sans', weight: '700' },
+                bodyFont: { size: 13, family: 'Plus Jakarta Sans', weight: '700' },
+                padding: 10,
+                cornerRadius: 8,
+                callbacks: {
+                  label: function(context) {
+                    const val = context.parsed.y || 0;
+                    return ' Spending: ' + formatMoney(val);
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: {
+                  display: false
+                },
+                ticks: {
+                  font: { size: 11, family: 'Plus Jakarta Sans', weight: '600' },
+                  color: '#64748b',
+                  maxRotation: 45
+                }
+              },
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: 'rgba(226, 232, 240, 0.7)'
+                },
+                ticks: {
+                  font: { size: 11, family: 'Plus Jakarta Sans', weight: '600' },
+                  color: '#64748b',
+                  callback: function(value) {
+                    return '₹' + Number(value).toLocaleString('en-IN');
+                  }
+                }
+              }
+            }
+          }
+        });
+        return;
+      } catch (e) {
+        console.warn('Chart.js render exception, falling back to SVG:', e);
+      }
+    }
+
+    this.renderFallbackSvgChart(canvasId, labels, dataPoints);
+  }
+
+  renderFallbackSvgChart(canvasId, labels, dataPoints) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    if (!parent) return;
+
+    let svgEl = parent.querySelector('.fallback-svg-chart');
+    if (!svgEl) {
+      svgEl = document.createElement('div');
+      svgEl.className = 'fallback-svg-chart';
+      parent.appendChild(svgEl);
+    }
+
+    canvas.style.display = 'none';
+    svgEl.style.display = 'block';
+
+    const w = 480;
+    const h = 200;
+    const padL = 50;
+    const padR = 20;
+    const padT = 20;
+    const padB = 40;
+
+    const maxVal = Math.max(...dataPoints, 100);
+    const n = Math.max(labels.length, 1);
+    const xStep = (w - padL - padR) / (n > 1 ? n - 1 : 1);
+
+    const points = dataPoints.map((v, i) => {
+      const x = padL + i * xStep;
+      const y = h - padB - (v / maxVal) * (h - padT - padB);
+      return { x, y, v, lbl: labels[i] };
+    });
+
+    const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+    const areaD = `${pathD} L ${points[points.length - 1].x.toFixed(1)} ${h - padB} L ${points[0].x.toFixed(1)} ${h - padB} Z`;
+
+    const dotsHTML = points.map(p => `
+      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="#ffffff" stroke="#4f46e5" stroke-width="2.5">
+        <title>${p.lbl}: ${formatMoney(p.v)}</title>
+      </circle>
+    `).join('');
+
+    const xLabelsHTML = points.filter((_, i) => (n <= 10 || i % Math.ceil(n / 8) === 0 || i === n - 1)).map(p => `
+      <text x="${p.x.toFixed(1)}" y="${h - 15}" font-size="10" font-family="Plus Jakarta Sans" fill="#64748b" text-anchor="middle">${p.lbl}</text>
+    `).join('');
+
+    svgEl.innerHTML = `
+      <svg viewBox="0 0 ${w} ${h}" style="width:100%; height:100%; overflow:visible;">
+        <defs>
+          <linearGradient id="svgGrad_${canvasId}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#4f46e5" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#4f46e5" stop-opacity="0.02"/>
+          </linearGradient>
+        </defs>
+        <line x1="${padL}" y1="${h - padB}" x2="${w - padR}" y2="${h - padB}" stroke="#cbd5e1" stroke-width="1"/>
+        <line x1="${padL}" y1="${padT}" x2="${w - padR}" y2="${padT}" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3,3"/>
+        <path d="${areaD}" fill="url(#svgGrad_${canvasId})"/>
+        <path d="${pathD}" fill="none" stroke="#4f46e5" stroke-width="2.5"/>
+        ${dotsHTML}
+        ${xLabelsHTML}
+        <text x="${padL - 6}" y="${padT + 8}" font-size="9" font-family="Plus Jakarta Sans" fill="#94a3b8" text-anchor="end">₹${Math.round(maxVal)}</text>
+        <text x="${padL - 6}" y="${h - padB}" font-size="9" font-family="Plus Jakarta Sans" fill="#94a3b8" text-anchor="end">₹0</text>
+      </svg>
+    `;
+  }
+
+  // ================= 1. HOME DASHBOARD RENDERING =================
   renderDashboard() {
     const user = this.data.activeUser;
     const today = getTodayDateStr();
 
-    // Greeting
+    // 1. User Greeting & Personal Settlement Banner
     const greetingEl = document.getElementById('dashGreeting');
     if (greetingEl) greetingEl.textContent = `Good day, ${user}! ✨`;
 
-    // Calculate Dues and Net Balance for active user
     const balances = this.calculateBalances(user);
     const netBalance = balances.othersOweMe - balances.iNeedToPay;
     const netBalEl = document.getElementById('dashNetBalance');
     const netSubEl = document.getElementById('dashNetBalanceSub');
+
     if (netBalEl) {
       if (netBalance > 0) {
         netBalEl.textContent = `+${formatMoney(netBalance)}`;
-        netBalEl.style.color = '#86efac';
+        netBalEl.style.color = '#10b981';
         if (netSubEl) netSubEl.textContent = '(Others owe you net)';
       } else if (netBalance < 0) {
         netBalEl.textContent = `-${formatMoney(Math.abs(netBalance))}`;
-        netBalEl.style.color = '#fca5a5';
-        if (netSubEl) netSubEl.textContent = '(You owe net)';
+        netBalEl.style.color = '#ef4444';
+        if (netSubEl) netSubEl.textContent = '(You owe the house net)';
       } else {
         netBalEl.textContent = '₹0.00';
-        netBalEl.style.color = '#c7d2fe';
+        netBalEl.style.color = '#3b82f6';
         if (netSubEl) netSubEl.textContent = '(All settled up)';
       }
     }
@@ -811,37 +1430,252 @@ class HouseHubApp {
     if (oweEl) oweEl.textContent = formatMoney(balances.iNeedToPay);
     if (recEl) recEl.textContent = formatMoney(balances.othersOweMe);
 
-    // Update Quick Month Spending in Hero Card
-    const curMonthStr = today.substring(0, 7);
-    const curMonthMetrics = this.calculateMonthlyMetrics(curMonthStr);
+    // 2. Compute Analytics for active Dashboard Period
+    const period = this.dashPeriod || 'month';
+    let refVal = null;
+    if (period === 'day') refVal = this.dashDay;
+    else if (period === 'month') refVal = this.dashMonth;
+    else if (period === 'year') refVal = this.dashYear;
+
+    const analytics = this.calculateAnalytics(this.data.expenses, user, period, refVal);
+
+    // 3. Populate 4 Top KPI Cards (Dynamic From Database)
+    const kpiTotalEl = document.getElementById('kpiTotalExpenses');
+    const kpiTodayEl = document.getElementById('kpiTodayExpenses');
+    const kpiMonthEl = document.getElementById('kpiMonthExpenses');
+    const kpiYearEl = document.getElementById('kpiYearExpenses');
+
+    if (kpiTotalEl) kpiTotalEl.textContent = formatMoney(analytics.kpis.totalExpenses);
+    if (kpiTodayEl) kpiTodayEl.textContent = formatMoney(analytics.kpis.todayExpenses);
+    if (kpiMonthEl) kpiMonthEl.textContent = formatMoney(analytics.kpis.thisMonthExpenses);
+    if (kpiYearEl) kpiYearEl.textContent = formatMoney(analytics.kpis.thisYearExpenses);
+
     const curMonthObj = new Date();
-    const curMonthShort = curMonthObj.toLocaleDateString('en-IN', { month: 'short' });
+    const curMonthName = curMonthObj.toLocaleDateString('en-IN', { month: 'short' });
+    const curYearName = curMonthObj.getFullYear();
+    const monthBadge = document.getElementById('kpiMonthBadge');
+    if (monthBadge) monthBadge.textContent = `${curMonthName}`;
+    const yearBadge = document.getElementById('kpiYearBadge');
+    if (yearBadge) yearBadge.textContent = `${curYearName}`;
 
-    const dashMonthTag = document.getElementById('dashCurrentMonthTag');
-    if (dashMonthTag) dashMonthTag.textContent = `${curMonthShort} Spending`;
+    // 4. Update Filter Pills & Filter Input Pickers
+    document.querySelectorAll('.dash-period-filter-pills .period-pill').forEach(pill => {
+      pill.classList.toggle('active', pill.getAttribute('data-dash-period') === period);
+    });
 
-    const dashMonthWeSpent = document.getElementById('dashMonthWeSpent');
-    if (dashMonthWeSpent) dashMonthWeSpent.textContent = formatMoney(curMonthMetrics.totalHouseSpent);
+    const dayGroup = document.getElementById('groupDashDayPicker');
+    const monthGroup = document.getElementById('groupDashMonthPicker');
+    const yearGroup = document.getElementById('groupDashYearPicker');
 
-    const dashMonthISpent = document.getElementById('dashMonthISpent');
-    if (dashMonthISpent) dashMonthISpent.textContent = formatMoney(curMonthMetrics.totalPaidByMe);
+    if (dayGroup) dayGroup.style.display = (period === 'day') ? 'flex' : 'none';
+    if (monthGroup) monthGroup.style.display = (period === 'month') ? 'flex' : 'none';
+    if (yearGroup) yearGroup.style.display = (period === 'year') ? 'flex' : 'none';
 
-    // Render Month-Wise Household Dashboard Section
-    this.renderDashMonthCard();
+    const dayInput = document.getElementById('dashDayInput');
+    if (dayInput) dayInput.value = this.dashDay;
 
-    // Household Work (Filtered to My Tasks or All House Tasks)
+    const monthInput = document.getElementById('dashMonthInput');
+    if (monthInput) monthInput.value = this.dashMonth;
+
+    const yearSelect = document.getElementById('dashYearSelect');
+    if (yearSelect) {
+      const availYears = this.getAvailableExpenseYears();
+      yearSelect.innerHTML = availYears.map(y => `<option value="${y}" ${y === this.dashYear ? 'selected' : ''}>${y}</option>`).join('');
+    }
+
+    // 5. Update Overview Subtitle & Period Summary Badges
+    const overviewSub = document.getElementById('dashOverviewSub');
+    if (overviewSub) {
+      if (period === 'day') overviewSub.textContent = `Daily View • ${formatDisplayDate(this.dashDay)}`;
+      else if (period === 'month') overviewSub.textContent = `Monthly View • ${this.formatMonthLabel(this.dashMonth)}`;
+      else if (period === 'year') overviewSub.textContent = `Yearly View • Year ${this.dashYear}`;
+      else overviewSub.textContent = `All-Time Overview • Entire expense history`;
+    }
+
+    const filterTotalVal = document.getElementById('dashFilterTotalVal');
+    const filterTransCount = document.getElementById('dashFilterTransCount');
+    if (filterTotalVal) filterTotalVal.textContent = formatMoney(analytics.kpis.periodTotal);
+    if (filterTransCount) filterTransCount.textContent = `${analytics.kpis.transactionCount}`;
+
+    // 6. Render Spending Overview Line Chart
+    const chartLabel = document.getElementById('dashChartLabel');
+    if (chartLabel) {
+      if (period === 'day') chartLabel.textContent = `7-Day Daily Trend (${formatDisplayDate(this.dashDay)})`;
+      else if (period === 'month') chartLabel.textContent = `Daily Spending in ${this.formatMonthLabel(this.dashMonth)}`;
+      else if (period === 'year') chartLabel.textContent = `Monthly Spending in ${this.dashYear}`;
+      else chartLabel.textContent = `All-Time Spending History`;
+    }
+
+    this.renderLineChart('dashSpendingChart', analytics.chartData.labels, analytics.chartData.values, {
+      datasetLabel: 'Expense (₹)'
+    });
+
+    // 7. Render Companion Values Table (Beside Chart) - 100% Matching!
+    const tableBody = document.getElementById('dashValuesTableBody');
+    const tableTotal = document.getElementById('dashValuesTableTotal');
+    const tableCountBadge = document.getElementById('dashValuesCountBadge');
+    const tableColDate = document.getElementById('dashTableColDate');
+
+    if (tableColDate) {
+      tableColDate.textContent = (period === 'year' || period === 'all') ? 'Month' : 'Date';
+    }
+
+    if (tableCountBadge) {
+      tableCountBadge.textContent = `${analytics.chartData.tableRows.length} ${analytics.chartData.tableRows.length === 1 ? 'entry' : 'entries'}`;
+    }
+
+    if (tableBody) {
+      if (analytics.chartData.tableRows.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#94a3b8; padding:18px;">No expenses recorded</td></tr>`;
+      } else {
+        tableBody.innerHTML = analytics.chartData.tableRows.map(r => `
+          <tr class="${r.isTarget ? 'is-target-row' : ''}">
+            <td style="font-weight:600;">${r.label}</td>
+            <td style="text-align:right; font-weight:700; color:var(--text-main);">${formatMoney(r.amount)}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    if (tableTotal) {
+      tableTotal.textContent = formatMoney(analytics.chartData.tableTotal);
+    }
+
+    // 8. Roommate Spending Summary Cards
+    const rmGrid = document.getElementById('dashRoommateCardsGrid');
+    if (rmGrid) {
+      rmGrid.innerHTML = ROOMMATES.map(r => {
+        const stats = analytics.roommateStats[r] || { paid: 0, share: 0, net: 0 };
+        const isMe = (r === user);
+        let netColorClass = 'settled';
+        let netSign = '';
+        if (stats.net > 0) {
+          netColorClass = 'ahead';
+          netSign = '+';
+        } else if (stats.net < 0) {
+          netColorClass = 'owes';
+          netSign = '-';
+        }
+
+        return `
+          <div class="roommate-summary-card ${r.toLowerCase()} ${isMe ? 'is-active-user' : ''}">
+            <div class="rm-card-header">
+              <div class="rm-avatar ${r}">${r.charAt(0)}</div>
+              <div class="rm-meta">
+                <strong>${r}${isMe ? ' (You)' : ''}</strong>
+                <span class="rm-tag">${stats.count || 0} bills paid</span>
+              </div>
+            </div>
+            <div class="rm-stat-lines">
+              <div class="rm-stat-line">
+                <span>Total Paid:</span>
+                <strong style="color:#0f172a;">${formatMoney(stats.paid)}</strong>
+              </div>
+              <div class="rm-stat-line">
+                <span>Fair Share:</span>
+                <strong style="color:#64748b;">${formatMoney(stats.share)}</strong>
+              </div>
+              <div class="rm-stat-line net-line ${netColorClass}">
+                <span>Net Balance:</span>
+                <strong>${netSign}${formatMoney(Math.abs(stats.net))}</strong>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 9. Highest Spending Categories
+    const catListEl = document.getElementById('dashCategoriesList');
+    if (catListEl) {
+      if (analytics.categoriesList.length === 0) {
+        catListEl.innerHTML = `<p class="empty-hint">No expenses recorded for this period.</p>`;
+      } else {
+        catListEl.innerHTML = analytics.categoriesList.slice(0, 5).map(c => `
+          <div class="category-row">
+            <div class="cat-label-row">
+              <span class="cat-name">${c.category}</span>
+              <span class="cat-amt"><strong>${formatMoney(c.total)}</strong> <small>(${c.percentage}%)</small></span>
+            </div>
+            <div class="cat-progress-track">
+              <div class="cat-progress-fill" style="width: ${Math.min(c.percentage, 100)}%;"></div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // 10. Pending Settlements
+    const settlementsEl = document.getElementById('dashSettlementsCard');
+    const settlementsBadge = document.getElementById('dashSettlementsBadge');
+    if (settlementsEl) {
+      if (analytics.pendingSettlements.length === 0) {
+        settlementsEl.innerHTML = `<div class="settled-notice">🎉 All roommate shares are fully settled! No pending dues.</div>`;
+        if (settlementsBadge) settlementsBadge.textContent = 'All Settled';
+      } else {
+        if (settlementsBadge) settlementsBadge.textContent = `${analytics.pendingSettlements.length} pending`;
+        settlementsEl.innerHTML = analytics.pendingSettlements.map(s => `
+          <div class="settlement-row">
+            <div class="settlement-info">
+              <span class="settle-from"><strong>${s.fromUser}</strong></span>
+              <span class="settle-arrow">owes →</span>
+              <span class="settle-to"><strong>${s.toUser}</strong></span>
+            </div>
+            <strong class="settle-amt">${formatMoney(s.amount)}</strong>
+          </div>
+        `).join('');
+      }
+    }
+
+    // 11. Recent Expenses
+    const recentEl = document.getElementById('dashRecentExpensesList');
+    const recentBadge = document.getElementById('dashRecentBadge');
+    const recentExpenses = (this.data.expenses || []).slice(0, 5);
+
+    if (recentBadge) recentBadge.textContent = `${this.data.expenses ? this.data.expenses.length : 0}`;
+    if (recentEl) {
+      if (recentExpenses.length === 0) {
+        recentEl.innerHTML = `<div class="empty-state"><p>No expenses added yet.</p></div>`;
+      } else {
+        recentEl.innerHTML = recentExpenses.map(exp => {
+          const iconInfo = getExpenseIcon(exp.title, exp.items);
+          const isPayer = (exp.paidBy === user);
+          const mySplit = (exp.splits || []).find(s => s.user === user);
+          const statusText = isPayer ? 'You paid' : (mySplit?.paid ? '✓ Settled' : 'Pending');
+          const statusColor = (isPayer || mySplit?.paid) ? '#059669' : '#dc2626';
+
+          return `
+            <div class="card recent-exp-card" style="cursor:pointer;" onclick="app.openExpenseDetail('${exp.id}')">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span style="font-size:22px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; border-radius:10px; background:${iconInfo.bg};">${iconInfo.icon}</span>
+                  <div>
+                    <strong style="font-size:14px; color:#0f172a;">${exp.title}</strong>
+                    <div style="font-size:12px; color:#64748b;">${formatDisplayDate(exp.date)} • Paid by ${exp.paidBy}</div>
+                  </div>
+                </div>
+                <div style="text-align:right;">
+                  <strong style="font-size:15px; color:#0f172a;">${formatMoney(exp.total)}</strong>
+                  <div style="font-size:11px; font-weight:700; color:${statusColor};">${statusText}</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // 12. Household Work & Shopping Previews
     const isMyOnly = (this.dashWorkFilter !== 'all');
     const filteredTasks = isMyOnly
-      ? this.data.tasks.filter(t => t.date === today && t.assignedTo === user)
-      : this.data.tasks.filter(t => t.date === today);
+      ? (this.data.tasks || []).filter(t => t.date === today && t.assignedTo === user)
+      : (this.data.tasks || []).filter(t => t.date === today);
 
     const countEl = document.getElementById('todayWorkCount');
     if (countEl) countEl.textContent = filteredTasks.length;
 
     const headingEl = document.getElementById('workSectionHeading');
-    if (headingEl) {
-      headingEl.textContent = isMyOnly ? "My Tasks Today" : "All House Tasks Today";
-    }
+    if (headingEl) headingEl.textContent = isMyOnly ? "My Tasks Today" : "All House Tasks Today";
 
     const btnMy = document.getElementById('btnFilterMyTasks');
     const btnAll = document.getElementById('btnFilterAllTasks');
@@ -851,72 +1685,13 @@ class HouseHubApp {
     const workListEl = document.getElementById('dashWorkList');
     if (workListEl) {
       if (filteredTasks.length === 0) {
-        workListEl.innerHTML = `
-          <div class="empty-state">
-            <span class="empty-icon">☕</span>
-            <p>${isMyOnly ? 'No household tasks assigned to you today. Enjoy!' : 'No household tasks scheduled for today. Enjoy!'}</p>
-          </div>
-        `;
+        workListEl.innerHTML = `<div class="empty-state"><span class="empty-icon">☕</span><p>No household tasks scheduled for today.</p></div>`;
       } else {
         workListEl.innerHTML = filteredTasks.map(t => this.renderWorkItemHTML(t)).join('');
       }
     }
 
-    // Today's / Recent Expenses Alert
-    const expenseAlertsEl = document.getElementById('dashExpenseAlerts');
-    if (expenseAlertsEl) {
-      // Show pending expenses where current user owes money
-      const pendingForMe = this.data.expenses.filter(exp => {
-        if (exp.paidBy === user) return false;
-        const mySplit = exp.splits.find(s => s.user === user);
-        return mySplit && !mySplit.paid;
-      });
-
-      if (pendingForMe.length > 0) {
-        expenseAlertsEl.innerHTML = pendingForMe.slice(0, 2).map(exp => {
-          const myShare = exp.splits.find(s => s.user === user)?.shareAmount || 0;
-          return `
-            <div class="card" style="margin-bottom:8px; border-left: 4px solid var(--danger);">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                  <strong style="font-size:14px;">${exp.title}</strong>
-                  <div style="font-size:12px; color:var(--text-muted);">Paid by ${exp.paidBy} • Your share: <strong style="color:var(--danger);">${formatMoney(myShare)}</strong></div>
-                </div>
-                <button class="btn-toggle-paid" onclick="app.quickMarkPaid('${exp.id}', '${user}')">Mark Paid</button>
-              </div>
-            </div>
-          `;
-        }).join('');
-      } else {
-        // Just show latest expense
-        const latestExp = this.data.expenses[0];
-        if (latestExp) {
-          const mySplit = latestExp.splits.find(s => s.user === user);
-          const isPayer = latestExp.paidBy === user;
-          const statusText = isPayer ? 'You paid this' : (mySplit?.paid ? '✓ Paid' : 'Pending');
-
-          expenseAlertsEl.innerHTML = `
-            <div class="card" style="cursor:pointer;" onclick="app.openExpenseDetail('${latestExp.id}')">
-              <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                <div>
-                  <strong style="font-size:14px;">${latestExp.title}</strong>
-                  <div style="font-size:12px; color:var(--text-muted);">${formatDisplayDate(latestExp.date)} • Paid by ${latestExp.paidBy}</div>
-                </div>
-                <div style="text-align:right;">
-                  <strong style="font-size:15px;">${formatMoney(latestExp.total)}</strong>
-                  <div style="font-size:11px; font-weight:700; color: ${isPayer || mySplit?.paid ? 'var(--success-dark)' : 'var(--danger)'};">${statusText}</div>
-                </div>
-              </div>
-            </div>
-          `;
-        } else {
-          expenseAlertsEl.innerHTML = `<div class="card empty-state"><p>No expenses added yet.</p></div>`;
-        }
-      }
-    }
-
-    // Shopping List Preview
-    const unpurchasedShop = this.data.shopping.filter(s => !s.purchased);
+    const unpurchasedShop = (this.data.shopping || []).filter(s => !s.purchased);
     const shopBadge = document.getElementById('dashPendingShopCount');
     if (shopBadge) shopBadge.textContent = unpurchasedShop.length;
 
@@ -937,10 +1712,9 @@ class HouseHubApp {
       }
     }
 
-    // Notes Preview
     const notesPrevEl = document.getElementById('dashNotesPreview');
     if (notesPrevEl) {
-      if (this.data.notes.length === 0) {
+      if (!this.data.notes || this.data.notes.length === 0) {
         notesPrevEl.innerHTML = `<p style="font-size:13px; color:var(--text-muted); text-align:center;">No shared notes posted.</p>`;
       } else {
         const topNote = this.data.notes[0];
@@ -954,6 +1728,306 @@ class HouseHubApp {
         `;
       }
     }
+  }
+
+  // ================= 2. TRACK EXPENSES (DEDICATED PAGE) =================
+  renderTrackPage() {
+    const user = this.data.activeUser;
+    const view = this.trackView || 'daily';
+
+    // 1. Tab Bar Active States
+    const tabDaily = document.getElementById('tabTrackDaily');
+    const tabMonthly = document.getElementById('tabTrackMonthly');
+    const tabYearly = document.getElementById('tabTrackYearly');
+    if (tabDaily) tabDaily.classList.toggle('active', view === 'daily');
+    if (tabMonthly) tabMonthly.classList.toggle('active', view === 'monthly');
+    if (tabYearly) tabYearly.classList.toggle('active', view === 'yearly');
+
+    // 2. Show/Hide Picker Controls
+    const ctrlDaily = document.getElementById('trackControlsDaily');
+    const ctrlMonthly = document.getElementById('trackControlsMonthly');
+    const ctrlYearly = document.getElementById('trackControlsYearly');
+    if (ctrlDaily) ctrlDaily.style.display = (view === 'daily') ? 'block' : 'none';
+    if (ctrlMonthly) ctrlMonthly.style.display = (view === 'monthly') ? 'block' : 'none';
+    if (ctrlYearly) ctrlYearly.style.display = (view === 'yearly') ? 'block' : 'none';
+
+    const dateInput = document.getElementById('trackDateInput');
+    if (dateInput) dateInput.value = this.trackDate;
+
+    const monthInput = document.getElementById('trackMonthInput');
+    if (monthInput) monthInput.value = this.trackMonth;
+
+    const yearSelect = document.getElementById('trackYearSelect');
+    if (yearSelect) {
+      const availYears = this.getAvailableExpenseYears();
+      yearSelect.innerHTML = availYears.map(y => `<option value="${y}" ${y === this.trackYear ? 'selected' : ''}>${y}</option>`).join('');
+    }
+
+    // 3. Compute Analytics for active Track View
+    let periodType = 'day';
+    let refTarget = this.trackDate;
+    if (view === 'monthly') {
+      periodType = 'month';
+      refTarget = this.trackMonth;
+    } else if (view === 'yearly') {
+      periodType = 'year';
+      refTarget = this.trackYear;
+    }
+
+    const analytics = this.calculateAnalytics(this.data.expenses, user, periodType, refTarget);
+
+    // 4. Update Summary KPI Cards
+    const totalValEl = document.getElementById('trackSumTotalVal');
+    const countValEl = document.getElementById('trackSumCountVal');
+    const avgValEl = document.getElementById('trackSumAvgVal');
+    const periodLabelEl = document.getElementById('trackSumPeriodLabel');
+    const periodSubEl = document.getElementById('trackSumPeriodSub');
+
+    if (totalValEl) totalValEl.textContent = formatMoney(analytics.kpis.periodTotal);
+    if (countValEl) countValEl.textContent = `${analytics.kpis.transactionCount}`;
+    if (avgValEl) {
+      const avg = analytics.kpis.transactionCount > 0 ? (analytics.kpis.periodTotal / analytics.kpis.transactionCount) : 0;
+      avgValEl.textContent = formatMoney(avg);
+    }
+
+    if (periodLabelEl) {
+      if (view === 'daily') periodLabelEl.textContent = 'Daily Total';
+      else if (view === 'monthly') periodLabelEl.textContent = 'Monthly Total';
+      else periodLabelEl.textContent = 'Yearly Total';
+    }
+
+    if (periodSubEl) {
+      if (view === 'daily') periodSubEl.textContent = formatDisplayDateWithYear(this.trackDate);
+      else if (view === 'monthly') periodSubEl.textContent = this.formatMonthLabel(this.trackMonth);
+      else periodSubEl.textContent = `Year ${this.trackYear}`;
+    }
+
+    // 5. Update Chart Headers
+    const chartTitle = document.getElementById('trackChartTitle');
+    const chartSub = document.getElementById('trackChartSub');
+    const chartBadge = document.getElementById('trackChartTotalBadge');
+    if (chartTitle) {
+      if (view === 'daily') chartTitle.textContent = `Daily Spending Trajectory`;
+      else if (view === 'monthly') chartTitle.textContent = `Daily Breakdown for ${this.formatMonthLabel(this.trackMonth)}`;
+      else chartTitle.textContent = `Monthly Breakdown for ${this.trackYear}`;
+    }
+    if (chartSub) {
+      if (view === 'daily') chartSub.textContent = `Expenses surrounding ${formatDisplayDateWithYear(this.trackDate)}`;
+      else if (view === 'monthly') chartSub.textContent = `Every day in ${this.formatMonthLabel(this.trackMonth)}`;
+      else chartSub.textContent = `12 months of ${this.trackYear}`;
+    }
+    if (chartBadge) chartBadge.textContent = `${formatMoney(analytics.kpis.periodTotal)} Total`;
+
+    // 6. Render Track Line Chart
+    this.renderLineChart('trackSpendingChart', analytics.chartData.labels, analytics.chartData.values, {
+      datasetLabel: 'Amount (₹)'
+    });
+
+    // 7. Render Companion Values Table
+    const tableBody = document.getElementById('trackValuesTableBody');
+    const tableTotal = document.getElementById('trackValuesTableTotal');
+    const tableBadge = document.getElementById('trackTableBadge');
+    const tableCol = document.getElementById('trackTableColHeader');
+
+    if (tableCol) {
+      tableCol.textContent = (view === 'yearly') ? 'Month' : 'Date';
+    }
+    if (tableBadge) {
+      tableBadge.textContent = `${analytics.chartData.tableRows.length} ${analytics.chartData.tableRows.length === 1 ? 'row' : 'rows'}`;
+    }
+
+    if (tableBody) {
+      if (analytics.chartData.tableRows.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#94a3b8; padding:18px;">No expenses found</td></tr>`;
+      } else {
+        tableBody.innerHTML = analytics.chartData.tableRows.map(r => `
+          <tr class="${r.isTarget ? 'is-target-row' : ''}">
+            <td style="font-weight:600;">${r.label}</td>
+            <td style="text-align:right; font-weight:700; color:var(--text-main);">${formatMoney(r.amount)}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    if (tableTotal) {
+      tableTotal.textContent = formatMoney(analytics.chartData.tableTotal);
+    }
+
+    // 8. Render Itemized Expenses List for this period
+    const expListEl = document.getElementById('trackExpensesList');
+    const expBadge = document.getElementById('trackExpensesCountBadge');
+    const expTitle = document.getElementById('trackExpensesListTitle');
+
+    if (expTitle) {
+      if (view === 'daily') expTitle.textContent = `Expenses on ${formatDisplayDateWithYear(this.trackDate)}`;
+      else if (view === 'monthly') expTitle.textContent = `Expenses in ${this.formatMonthLabel(this.trackMonth)}`;
+      else expTitle.textContent = `Expenses in Year ${this.trackYear}`;
+    }
+
+    if (expBadge) {
+      expBadge.textContent = `${analytics.filteredExpenses.length} ${analytics.filteredExpenses.length === 1 ? 'item' : 'items'}`;
+    }
+
+    if (expListEl) {
+      if (analytics.filteredExpenses.length === 0) {
+        expListEl.innerHTML = `
+          <div class="empty-state" style="padding:28px 16px;">
+            <span class="empty-icon">🧾</span>
+            <p>No transactions recorded for this period.</p>
+          </div>
+        `;
+      } else {
+        expListEl.innerHTML = analytics.filteredExpenses.map(exp => {
+          const iconInfo = getExpenseIcon(exp.title, exp.items);
+          const isPayer = (exp.paidBy === user);
+          const mySplit = (exp.splits || []).find(s => s.user === user);
+          const statusText = isPayer ? 'You paid' : (mySplit?.paid ? '✓ Settled' : 'Pending');
+          const statusColor = (isPayer || mySplit?.paid) ? '#059669' : '#dc2626';
+
+          return `
+            <div class="card recent-exp-card" style="cursor:pointer; margin-bottom:8px;" onclick="app.openExpenseDetail('${exp.id}')">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span style="font-size:22px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; border-radius:10px; background:${iconInfo.bg};">${iconInfo.icon}</span>
+                  <div>
+                    <strong style="font-size:14px; color:#0f172a;">${exp.title}</strong>
+                    <div style="font-size:12px; color:#64748b;">${formatDisplayDate(exp.date)} • Paid by <strong>${exp.paidBy}</strong></div>
+                  </div>
+                </div>
+                <div style="text-align:right;">
+                  <strong style="font-size:15px; color:#0f172a;">${formatMoney(exp.total)}</strong>
+                  <div style="font-size:11px; font-weight:700; color:${statusColor};">${statusText}</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+  }
+
+  // ================= DASHBOARD & TRACK FILTER EVENT HANDLERS =================
+  setDashPeriod(period) {
+    this.dashPeriod = period;
+    this.renderDashboard();
+  }
+
+  onDashDayChange(val) {
+    if (val) {
+      this.dashDay = val;
+      this.renderDashboard();
+    }
+  }
+
+  onDashMonthChange(val) {
+    if (val) {
+      this.dashMonth = val;
+      this.renderDashboard();
+    }
+  }
+
+  onDashYearChange(val) {
+    if (val) {
+      this.dashYear = val;
+      this.renderDashboard();
+    }
+  }
+
+  setDashDayToday() {
+    this.dashDay = getTodayDateStr();
+    const el = document.getElementById('dashDayInput');
+    if (el) el.value = this.dashDay;
+    this.renderDashboard();
+  }
+
+  setDashMonthCurrent() {
+    this.dashMonth = getTodayDateStr().substring(0, 7);
+    const el = document.getElementById('dashMonthInput');
+    if (el) el.value = this.dashMonth;
+    this.renderDashboard();
+  }
+
+  setDashYearCurrent() {
+    this.dashYear = String(new Date().getFullYear());
+    const el = document.getElementById('dashYearSelect');
+    if (el) el.value = this.dashYear;
+    this.renderDashboard();
+  }
+
+  setTrackView(view) {
+    this.trackView = view;
+    this.renderTrackPage();
+  }
+
+  onTrackDateChange(val) {
+    if (val) {
+      this.trackDate = val;
+      this.renderTrackPage();
+    }
+  }
+
+  onTrackMonthChange(val) {
+    if (val) {
+      this.trackMonth = val;
+      this.renderTrackPage();
+    }
+  }
+
+  onTrackYearChange(val) {
+    if (val) {
+      this.trackYear = val;
+      this.renderTrackPage();
+    }
+  }
+
+  shiftTrackDate(delta) {
+    const [y, m, d] = this.trackDate.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() + delta);
+    this.trackDate = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    this.renderTrackPage();
+  }
+
+  shiftTrackMonth(delta) {
+    const [y, m] = this.trackMonth.split('-').map(Number);
+    const dt = new Date(y, m - 1 + delta, 1);
+    this.trackMonth = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+    this.renderTrackPage();
+  }
+
+  shiftTrackYear(delta) {
+    this.trackYear = String(parseInt(this.trackYear, 10) + delta);
+    this.renderTrackPage();
+  }
+
+  resetTrackDateToday() {
+    this.trackDate = getTodayDateStr();
+    this.renderTrackPage();
+  }
+
+  resetTrackMonthCurrent() {
+    this.trackMonth = getTodayDateStr().substring(0, 7);
+    this.renderTrackPage();
+  }
+
+  resetTrackYearCurrent() {
+    this.trackYear = String(new Date().getFullYear());
+    this.renderTrackPage();
+  }
+
+  getAvailableExpenseYears() {
+    const yearsSet = new Set();
+    const curYear = String(new Date().getFullYear());
+    yearsSet.add(curYear);
+
+    (this.data.expenses || []).forEach(exp => {
+      const norm = parseDateParts(exp.date);
+      if (norm && norm.y) {
+        yearsSet.add(norm.y);
+      }
+    });
+
+    return Array.from(yearsSet).sort().reverse();
   }
 
   // ================= BALANCE CALCULATIONS =================
@@ -1373,21 +2447,37 @@ class HouseHubApp {
 
     // 1. Time-Period filter (matching screenshot: All, Daily, Weekly, Monthly, Yearly)
     if (period === 'daily') {
-      filtered = filtered.filter(exp => exp.date === today);
+      filtered = filtered.filter(exp => {
+        const norm = parseDateParts(exp.date);
+        return norm ? norm.ymd === today : String(exp.date || '').startsWith(today);
+      });
     } else if (period === 'weekly') {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(now.getDate() - 6);
-      const sevenDaysAgoStr = `${sevenDaysAgo.getFullYear()}-${String(sevenDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(sevenDaysAgo.getDate()).padStart(2, '0')}`;
-      filtered = filtered.filter(exp => exp.date >= sevenDaysAgoStr && exp.date <= today);
+      const sY = sevenDaysAgo.getFullYear();
+      const sM = String(sevenDaysAgo.getMonth() + 1).padStart(2, '0');
+      const sD = String(sevenDaysAgo.getDate()).padStart(2, '0');
+      const sevenDaysAgoStr = `${sY}-${sM}-${sD}`;
+      filtered = filtered.filter(exp => {
+        const norm = parseDateParts(exp.date);
+        const ymd = norm ? norm.ymd : String(exp.date || '').substring(0, 10);
+        return ymd >= sevenDaysAgoStr && ymd <= today;
+      });
     } else if (period === 'monthly') {
-      const mPrefix = (monthFilter && monthFilter !== 'all') ? monthFilter : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      filtered = filtered.filter(exp => exp.date && exp.date.startsWith(mPrefix));
+      const curYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const mPrefix = (monthFilter && monthFilter !== 'all') ? monthFilter : curYM;
+      filtered = filtered.filter(exp => {
+        const norm = parseDateParts(exp.date);
+        return norm ? norm.ym === mPrefix : String(exp.date || '').startsWith(mPrefix);
+      });
     } else if (period === 'yearly') {
-      const yPrefix = `${now.getFullYear()}-`;
-      filtered = filtered.filter(exp => exp.date && exp.date.startsWith(yPrefix));
-    } else if (monthFilter && monthFilter !== 'all') {
-      filtered = filtered.filter(exp => exp.date && exp.date.startsWith(monthFilter));
+      const yPrefix = `${now.getFullYear()}`;
+      filtered = filtered.filter(exp => {
+        const norm = parseDateParts(exp.date);
+        return norm ? norm.y === yPrefix : String(exp.date || '').startsWith(yPrefix);
+      });
     }
+    // Note: If period === 'all', all transactions are shown without month restriction
 
     // 2. Status / User filter (All, Pending, Paid by Me, I Need To Pay)
     if (filter === 'unsettled') {

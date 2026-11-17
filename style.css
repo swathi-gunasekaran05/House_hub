@@ -3497,3 +3497,899 @@ table {
   margin-top: 2px;
 }
 
+/* ===================================================
+   COMPLETE FINANCIAL DASHBOARD & TRACK ANALYTICS STYLES
+   =================================================== */
+
+/* Desktop view expansion for professional financial dashboard layout */
+@media (min-width: 768px) {
+  :root {
+    --max-width: 980px;
+  }
+}
+
+/* 1. Hero Greeting & Settlement Banner */
+.dash-hero-banner {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%);
+  border-radius: 20px;
+  padding: 22px 20px;
+  color: #ffffff;
+  margin-bottom: 18px;
+  box-shadow: 0 10px 25px -4px rgba(30, 27, 75, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.dash-hero-banner::after {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.dash-hero-date {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #c7d2fe;
+  margin-bottom: 4px;
+}
+
+.dash-hero-greeting {
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.dash-hero-balance-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13.5px;
+}
+
+.hero-bal-tag {
+  color: #e0e7ff;
+  font-weight: 600;
+}
+
+.hero-bal-amt {
+  font-size: 18px;
+  font-weight: 800;
+  color: #86efac;
+}
+
+.hero-bal-sub {
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.dash-hero-dues-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 14px 0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.hero-due-card {
+  flex: 1;
+  text-align: center;
+}
+
+.hero-due-card .due-lbl {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #c7d2fe;
+  margin-bottom: 2px;
+}
+
+.hero-due-card .due-val {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.hero-due-card.owe .due-val {
+  color: #fca5a5;
+}
+
+.hero-due-card.receive .due-val {
+  color: #86efac;
+}
+
+.hero-due-divider {
+  width: 1px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dash-hero-action-bar {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.dash-hero-action-bar .btn {
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 10px;
+}
+
+/* 2. Top 4 KPI Summary Cards Grid */
+.kpi-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+@media (min-width: 680px) {
+  .kpi-cards-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.kpi-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 15px 14px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px -2px rgba(15, 23, 42, 0.08);
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3.5px;
+}
+
+.kpi-card.purple::before { background: #4f46e5; }
+.kpi-card.green::before { background: #10b981; }
+.kpi-card.blue::before { background: #0284c7; }
+.kpi-card.amber::before { background: #f59e0b; }
+
+.kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.kpi-icon {
+  font-size: 20px;
+}
+
+.kpi-badge {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.kpi-lbl {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.kpi-val {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+
+.kpi-card.purple .kpi-val { color: #4338ca; }
+.kpi-card.green .kpi-val { color: #047857; }
+.kpi-card.blue .kpi-val { color: #0369a1; }
+.kpi-card.amber .kpi-val { color: #b45309; }
+
+.kpi-sub {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 3px;
+}
+
+/* 3. Dashboard Spending Overview Section */
+.dash-spending-overview-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 22px;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.05);
+}
+
+.dash-overview-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.overview-title-group h3 {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.dash-period-filter-pills {
+  display: inline-flex;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 12px;
+  gap: 3px;
+}
+
+.dash-period-filter-pills .period-pill {
+  padding: 6px 13px;
+  font-size: 12.5px;
+  font-weight: 700;
+  border-radius: 9px;
+  border: none;
+  background: none;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dash-period-filter-pills .period-pill:hover {
+  color: #1e293b;
+}
+
+.dash-period-filter-pills .period-pill.active {
+  background: #ffffff;
+  color: #4338ca;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Dynamic Filter Picker Row */
+.dash-filter-selector-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.filter-picker-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-picker-group label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.filter-input, .filter-select {
+  padding: 7px 11px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+  font-family: inherit;
+}
+
+.filter-input:focus, .filter-select:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+.btn-picker-shortcut {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4338ca;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-picker-shortcut:hover {
+  background: #eef2ff;
+  border-color: #a5b4fc;
+}
+
+.dash-period-summary-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.metric-pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 8px;
+}
+
+.metric-pill.purple {
+  background: #eef2ff;
+  color: #4338ca;
+  border: 1px solid #c7d2fe;
+}
+
+.metric-pill.muted {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+/* 4. Side-by-Side Spending Chart Grid */
+.spending-chart-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .spending-chart-grid {
+    grid-template-columns: 1.55fr 1fr;
+  }
+}
+
+.chart-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.chart-label {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.chart-hint {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.canvas-wrapper {
+  position: relative;
+  width: 100%;
+  height: 250px;
+  min-height: 220px;
+}
+
+.chart-table-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chart-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.table-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.table-scroll-wrapper {
+  max-height: 250px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.financial-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.financial-data-table th {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  padding: 9px 14px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #e2e8f0;
+  z-index: 2;
+}
+
+.financial-data-table td {
+  padding: 9px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.financial-data-table tr:hover {
+  background: #f8fafc;
+}
+
+.financial-data-table tr.is-target-row {
+  background: #eef2ff;
+  color: #4338ca;
+  font-weight: 700;
+}
+
+.financial-data-table tr.table-total-row td {
+  background: #f8fafc;
+  font-weight: 800;
+  color: #0f172a;
+  border-top: 2px solid #cbd5e1;
+  border-bottom: none;
+}
+
+/* 5. Roommate Spending Summary Cards */
+.roommate-summary-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 680px) {
+  .roommate-summary-cards-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.roommate-summary-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  transition: transform 0.15s ease;
+}
+
+.roommate-summary-card.is-active-user {
+  border-color: #818cf8;
+  background: #fafafa;
+}
+
+.rm-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.rm-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  color: #ffffff;
+}
+
+.rm-avatar.Vaishali { background: #10b981; }
+.rm-avatar.Kaviya { background: #f59e0b; }
+.rm-avatar.Elakiya { background: #0ea5e9; }
+.rm-avatar.Swathi { background: #8b5cf6; }
+
+.rm-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.rm-meta strong {
+  font-size: 13.5px;
+  color: #0f172a;
+}
+
+.rm-tag {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.rm-stat-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.rm-stat-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.rm-stat-line strong {
+  font-weight: 700;
+}
+
+.rm-stat-line.net-line {
+  margin-top: 4px;
+  padding-top: 5px;
+  border-top: 1px dashed #e2e8f0;
+  font-size: 12.5px;
+}
+
+.rm-stat-line.net-line.ahead strong {
+  color: #059669;
+}
+
+.rm-stat-line.net-line.owes strong {
+  color: #dc2626;
+}
+
+.rm-stat-line.net-line.settled strong {
+  color: #0284c7;
+}
+
+/* 6. Categories Breakdown */
+.categories-card {
+  padding: 16px;
+}
+
+.categories-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.category-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cat-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.cat-name {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.cat-amt {
+  color: #475569;
+}
+
+.cat-amt small {
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.cat-progress-track {
+  width: 100%;
+  height: 7px;
+  background: #f1f5f9;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.cat-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4f46e5, #818cf8);
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* 7. Settlements Card */
+.settlements-card {
+  padding: 14px 16px;
+}
+
+.settlement-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.settlement-row:last-child {
+  border-bottom: none;
+}
+
+.settlement-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+}
+
+.settle-from strong { color: #dc2626; }
+.settle-to strong { color: #059669; }
+.settle-arrow { font-size: 12px; color: #94a3b8; }
+.settle-amt { font-size: 14.5px; font-weight: 800; color: #0f172a; }
+
+.settled-notice {
+  text-align: center;
+  padding: 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #059669;
+}
+
+/* 8. Dedicated Track Expenses Page Styles */
+.track-tab-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.track-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 10px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.track-tab-btn:hover {
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.track-tab-btn.active {
+  background: #4f46e5;
+  border-color: #4f46e5;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+}
+
+.track-filter-card {
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.picker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.picker-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-stepper {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-stepper:hover {
+  background: #e2e8f0;
+}
+
+.track-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.track-summary-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 12px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+}
+
+.tsum-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.tsum-value {
+  display: block;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.track-summary-card.purple .tsum-value { color: #4338ca; }
+.track-summary-card.blue .tsum-value { color: #0284c7; }
+.track-summary-card.green .tsum-value { color: #059669; }
+
+.tsum-sub {
+  display: block;
+  font-size: 10.5px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.track-chart-card {
+  padding: 18px;
+  margin-bottom: 22px;
+}
+
+.track-chart-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.track-chart-header h3 {
+  font-size: 16.5px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.badge-purple {
+  background: #eef2ff;
+  color: #4338ca;
+  font-weight: 800;
+  border: 1px solid #c7d2fe;
+}
+
+/* Mobile Adjustments for 320px–430px Viewports */
+@media (max-width: 430px) {
+  .dash-hero-banner {
+    padding: 18px 14px;
+  }
+  .dash-hero-greeting {
+    font-size: 19px;
+  }
+  .dash-hero-dues-strip {
+    padding: 10px 8px;
+  }
+  .hero-due-card .due-val {
+    font-size: 15px;
+  }
+  .dash-spending-overview-card {
+    padding: 14px 12px;
+  }
+  .dash-overview-top {
+    flex-direction: column;
+  }
+  .dash-period-filter-pills {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .dash-period-filter-pills .period-pill {
+    flex: 1;
+    padding: 6px 4px;
+    font-size: 11.5px;
+    text-align: center;
+  }
+  .canvas-wrapper {
+    height: 220px;
+  }
+  .track-tab-btn {
+    font-size: 11.5px;
+    padding: 10px 4px;
+  }
+  .tsum-value {
+    font-size: 15px;
+  }
+  .bottom-nav .nav-label {
+    font-size: 10px;
+  }
+  .bottom-nav .nav-icon {
+    font-size: 18px;
+  }
+}
+
+

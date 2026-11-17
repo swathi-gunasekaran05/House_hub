@@ -8,7 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <!-- Chart.js for interactive financial Line Charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css?v=6.0">
 </head>
 <body>
   <!-- Dedicated Roommate Login Screen -->
@@ -135,100 +137,219 @@
 
       <!-- ================= 1. HOME / DASHBOARD ================= -->
       <section id="page-home" class="page-section active">
-        <!-- Today's Greeting Card -->
-        <div class="hero-card">
-          <div class="hero-date" id="dashDate">Wednesday, 30 September</div>
-          <h2 class="hero-greeting" id="dashGreeting">Good day, Swathi! ✨</h2>
-          <div class="hero-net-balance-row">
-            <span class="net-bal-label">Your Net Balance:</span>
-            <strong class="net-bal-value" id="dashNetBalance">₹0.00</strong>
-            <span class="net-bal-sub" id="dashNetBalanceSub">(Settled up)</span>
-          </div>
-          <div class="balance-strip">
-            <div class="balance-item pay">
-              <span class="bal-label">You need to pay</span>
-              <strong class="bal-value" id="dashOweAmount">₹0.00</strong>
-            </div>
-            <div class="bal-divider"></div>
-            <div class="balance-item receive">
-              <span class="bal-label">Others owe you</span>
-              <strong class="bal-value" id="dashReceiveAmount">₹0.00</strong>
+        <!-- Top Roommate Net Status Banner -->
+        <div class="dash-hero-banner">
+          <div class="dash-hero-main">
+            <div class="dash-hero-date" id="dashDate">Wednesday, 30 September</div>
+            <h2 class="dash-hero-greeting" id="dashGreeting">Good day, Swathi! ✨</h2>
+            <div class="dash-hero-balance-row">
+              <span class="hero-bal-tag">Your Net Settlement:</span>
+              <strong class="hero-bal-amt" id="dashNetBalance">₹0.00</strong>
+              <span class="hero-bal-sub" id="dashNetBalanceSub">(Settled up)</span>
             </div>
           </div>
-
-          <!-- Quick Month Spending Tracker Pill -->
-          <div class="hero-month-pill" onclick="app.navTo('expenses')" title="Click to view month-wise expense tracking">
-            <div class="hmonth-item">
-              <span class="hmonth-tag" id="dashCurrentMonthTag">This Month</span>
-              <span class="hmonth-sub">We Spent: <strong id="dashMonthWeSpent">₹0.00</strong></span>
+          <div class="dash-hero-dues-strip">
+            <div class="hero-due-card owe">
+              <span class="due-lbl">You need to pay</span>
+              <strong class="due-val" id="dashOweAmount">₹0.00</strong>
             </div>
-            <div class="hmonth-sep">•</div>
-            <div class="hmonth-item">
-              <span class="hmonth-sub">I Spent: <strong id="dashMonthISpent">₹0.00</strong></span>
+            <div class="hero-due-divider"></div>
+            <div class="hero-due-card receive">
+              <span class="due-lbl">Others owe you</span>
+              <strong class="due-val" id="dashReceiveAmount">₹0.00</strong>
             </div>
-            <span class="hmonth-arrow">Track Details →</span>
+          </div>
+          <div class="dash-hero-action-bar">
+            <button type="button" class="btn btn-primary btn-compact" onclick="app.navTo('track')">
+              📈 Open Dedicated Expense Tracker →
+            </button>
+            <button type="button" class="btn btn-secondary btn-compact" onclick="app.openAddExpenseModal()">
+              + Add Expense
+            </button>
           </div>
         </div>
 
-        <!-- ================= Month-Wise Dashboard Section ================= -->
-        <div class="card-section">
-          <div class="section-title-row">
-            <div class="title-with-badge">
-              <h3>Monthly Spending Dashboard</h3>
+        <!-- Four Top KPI Summary Cards (Dynamic From Database) -->
+        <div class="kpi-cards-grid">
+          <div class="kpi-card purple">
+            <div class="kpi-header">
+              <span class="kpi-icon">💳</span>
+              <span class="kpi-badge">All-Time</span>
             </div>
-            <div class="dash-month-selector">
-              <select id="dashMonthSelect" class="month-dropdown" onchange="app.onDashMonthChange(this.value)">
-                <!-- Dynamically populated options -->
-              </select>
+            <span class="kpi-lbl">Total Expenses</span>
+            <strong class="kpi-val" id="kpiTotalExpenses">₹0.00</strong>
+            <span class="kpi-sub">Total amount spent by house</span>
+          </div>
+
+          <div class="kpi-card green">
+            <div class="kpi-header">
+              <span class="kpi-icon">☀️</span>
+              <span class="kpi-badge">Today</span>
+            </div>
+            <span class="kpi-lbl">Today's Expenses</span>
+            <strong class="kpi-val" id="kpiTodayExpenses">₹0.00</strong>
+            <span class="kpi-sub" id="kpiTodaySub">Spent today</span>
+          </div>
+
+          <div class="kpi-card blue">
+            <div class="kpi-header">
+              <span class="kpi-icon">📅</span>
+              <span class="kpi-badge" id="kpiMonthBadge">This Month</span>
+            </div>
+            <span class="kpi-lbl">This Month's Expenses</span>
+            <strong class="kpi-val" id="kpiMonthExpenses">₹0.00</strong>
+            <span class="kpi-sub" id="kpiMonthSub">Spent in current month</span>
+          </div>
+
+          <div class="kpi-card amber">
+            <div class="kpi-header">
+              <span class="kpi-icon">📊</span>
+              <span class="kpi-badge" id="kpiYearBadge">This Year</span>
+            </div>
+            <span class="kpi-lbl">This Year's Expenses</span>
+            <strong class="kpi-val" id="kpiYearExpenses">₹0.00</strong>
+            <span class="kpi-sub" id="kpiYearSub">Spent in current year</span>
+          </div>
+        </div>
+
+        <!-- Dashboard Time Filters & Spending Overview Section -->
+        <div class="card dash-spending-overview-card">
+          <div class="dash-overview-top">
+            <div class="overview-title-group">
+              <h3>📈 Spending Overview</h3>
+              <p class="subtitle" id="dashOverviewSub">Interactive trend line & breakdown</p>
+            </div>
+            <!-- Time Filters: Day, Month, Year, All-Time -->
+            <div class="dash-period-filter-pills">
+              <button type="button" class="period-pill" data-dash-period="day" onclick="app.setDashPeriod('day')">Day</button>
+              <button type="button" class="period-pill active" data-dash-period="month" onclick="app.setDashPeriod('month')">Month</button>
+              <button type="button" class="period-pill" data-dash-period="year" onclick="app.setDashPeriod('year')">Year</button>
+              <button type="button" class="period-pill" data-dash-period="all" onclick="app.setDashPeriod('all')">All-Time</button>
             </div>
           </div>
 
-          <div class="card dash-monthly-card">
-            <div class="dash-month-header">
-              <div class="dash-month-info">
-                <span class="dash-month-tag" id="dashMonthActiveLabel">November 2026</span>
-                <span class="dash-month-sub" id="dashMonthExpenseCount">0 house expenses recorded</span>
-              </div>
-              <button type="button" class="btn btn-secondary btn-compact" onclick="app.navTo('expenses')">
-                View Full Split →
-              </button>
+          <!-- Dynamic Period Selector Row (changes with active filter) -->
+          <div class="dash-filter-selector-row" id="dashFilterSelectorRow">
+            <div class="filter-picker-group" id="groupDashDayPicker" style="display:none;">
+              <label for="dashDayInput">Select Date:</label>
+              <input type="date" id="dashDayInput" class="filter-input" onchange="app.onDashDayChange(this.value)">
+              <button type="button" class="btn-picker-shortcut" onclick="app.setDashDayToday()">Today</button>
             </div>
 
-            <!-- 4 Key Metrics -->
-            <div class="monthly-metrics-grid" style="margin-bottom:12px;">
-              <div class="month-stat-box purple">
-                <span class="mstat-lbl">🏡 We Spent Totally</span>
-                <strong class="mstat-val" id="dashTotalWeSpent">₹0.00</strong>
-                <span class="mstat-sub">Across all 4 roommates</span>
-              </div>
+            <div class="filter-picker-group" id="groupDashMonthPicker">
+              <label for="dashMonthInput">Select Month:</label>
+              <input type="month" id="dashMonthInput" class="filter-input" onchange="app.onDashMonthChange(this.value)">
+              <button type="button" class="btn-picker-shortcut" onclick="app.setDashMonthCurrent()">This Month</button>
+            </div>
 
-              <div class="month-stat-box green">
-                <span class="mstat-lbl">💳 I Spent (My Paid)</span>
-                <strong class="mstat-val" id="dashTotalISpent">₹0.00</strong>
-                <span class="mstat-sub">My paid contributions</span>
-              </div>
+            <div class="filter-picker-group" id="groupDashYearPicker" style="display:none;">
+              <label for="dashYearSelect">Select Year:</label>
+              <select id="dashYearSelect" class="filter-select" onchange="app.onDashYearChange(this.value)">
+                <!-- Dynamically populated -->
+              </select>
+              <button type="button" class="btn-picker-shortcut" onclick="app.setDashYearCurrent()">This Year</button>
+            </div>
 
-              <div class="month-stat-box amber">
-                <span class="mstat-lbl">⚖️ My Fair Share</span>
-                <strong class="mstat-val" id="dashMyFairShare">₹0.00</strong>
-                <span class="mstat-sub">My portion to bear</span>
-              </div>
+            <div class="dash-period-summary-badges">
+              <span class="metric-pill purple">Total: <strong id="dashFilterTotalVal">₹0.00</strong></span>
+              <span class="metric-pill muted"><strong id="dashFilterTransCount">0</strong> transactions</span>
+            </div>
+          </div>
 
-              <div class="month-stat-box blue">
-                <span class="mstat-lbl">🔄 Net Balance</span>
-                <strong class="mstat-val" id="dashMonthNetBalance">₹0.00</strong>
-                <span class="mstat-sub" id="dashMonthNetSub">Settled up</span>
+          <!-- Line Chart & Side-by-Side Values Table -->
+          <div class="spending-chart-grid">
+            <div class="chart-box">
+              <div class="chart-box-header">
+                <span class="chart-label" id="dashChartLabel">Daily Spending Trend</span>
+                <span class="chart-hint">Hover point for exact ₹</span>
+              </div>
+              <div class="canvas-wrapper">
+                <canvas id="dashSpendingChart"></canvas>
               </div>
             </div>
 
-            <!-- Roommate Spending Distribution for Selected Month -->
-            <div class="month-roommate-section" style="margin-top:0;">
-              <div class="mbreakdown-header">
-                <span class="mbreakdown-title">Who Paid in <span id="dashRoommateMonthTitle">This Month</span>:</span>
+            <div class="chart-table-box">
+              <div class="chart-table-header">
+                <span class="table-title">Corresponding Values</span>
+                <span class="table-badge" id="dashValuesCountBadge">0 records</span>
               </div>
-              <div class="spend-progress-bar" id="dashSpendProgressBar"></div>
-              <div class="roommate-spend-list" id="dashRoommateSpendList"></div>
+              <div class="table-scroll-wrapper">
+                <table class="financial-data-table" id="dashValuesTable">
+                  <thead>
+                    <tr>
+                      <th id="dashTableColDate">Date</th>
+                      <th style="text-align:right;">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashValuesTableBody">
+                    <!-- Injected dynamically via JS -->
+                  </tbody>
+                  <tfoot>
+                    <tr class="table-total-row">
+                      <td>Total</td>
+                      <td style="text-align:right;" id="dashValuesTableTotal">₹0.00</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Roommate Spending & Fair Share Summary -->
+        <div class="card-section">
+          <div class="section-title-row">
+            <div class="title-with-badge">
+              <h3>👥 Roommate Spending Summary</h3>
+              <span class="badge badge-subtle">4 Roommates</span>
+            </div>
+            <span class="subtitle-tag" id="dashRoommateScopeTag">Selected Period</span>
+          </div>
+
+          <div class="roommate-summary-cards-grid" id="dashRoommateCardsGrid">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Highest Spending Categories -->
+        <div class="card-section">
+          <div class="section-title-row">
+            <div class="title-with-badge">
+              <h3>🏷️ Highest Spending Categories</h3>
+            </div>
+            <span class="subtitle-tag" id="dashCategoryScopeTag">Categorized</span>
+          </div>
+          <div class="card categories-card">
+            <div class="categories-list" id="dashCategoriesList">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Pending Settlements -->
+        <div class="card-section">
+          <div class="section-title-row">
+            <div class="title-with-badge">
+              <h3>🤝 Pending Settlements</h3>
+            </div>
+            <span class="badge badge-amber" id="dashSettlementsBadge">0 pending</span>
+          </div>
+          <div class="card settlements-card" id="dashSettlementsCard">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Recent Expenses -->
+        <div class="card-section">
+          <div class="section-title-row">
+            <div class="title-with-badge">
+              <h3>🕒 Recent Expenses</h3>
+              <span class="badge" id="dashRecentBadge">0</span>
+            </div>
+            <button class="text-btn" onclick="app.navTo('expenses')">All Expenses →</button>
+          </div>
+          <div class="recent-expenses-list" id="dashRecentExpensesList">
+            <!-- Injected via JS -->
           </div>
         </div>
 
@@ -248,19 +369,6 @@
             </div>
           </div>
           <div class="card work-card-list" id="dashWorkList">
-            <!-- Injected via JS -->
-          </div>
-        </div>
-
-        <!-- Today's Expenses & Pending Dues -->
-        <div class="card-section">
-          <div class="section-title-row">
-            <div class="title-with-badge">
-              <h3>Recent / Today's Expenses</h3>
-            </div>
-            <button class="text-btn" onclick="app.navTo('expenses')">All Expenses →</button>
-          </div>
-          <div id="dashExpenseAlerts">
             <!-- Injected via JS -->
           </div>
         </div>
@@ -311,6 +419,158 @@
                 🔄 Reload Demo
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 2. TRACK EXPENSES (DEDICATED ANALYTICS PAGE) ================= -->
+      <section id="page-track" class="page-section">
+        <div class="page-header">
+          <div>
+            <h2>📈 Track Expenses</h2>
+            <p class="subtitle">Daily, monthly & yearly financial analysis</p>
+          </div>
+          <button class="btn btn-primary btn-compact" onclick="app.openAddExpenseModal()">
+            + Add Expense
+          </button>
+        </div>
+
+        <!-- Top View Selector: Daily, Monthly, Yearly -->
+        <div class="track-tab-bar">
+          <button type="button" class="track-tab-btn active" id="tabTrackDaily" onclick="app.setTrackView('daily')">
+            <span class="tab-icon">📅</span>
+            <span>Daily Expenses</span>
+          </button>
+          <button type="button" class="track-tab-btn" id="tabTrackMonthly" onclick="app.setTrackView('monthly')">
+            <span class="tab-icon">🗓️</span>
+            <span>Monthly Expenses</span>
+          </button>
+          <button type="button" class="track-tab-btn" id="tabTrackYearly" onclick="app.setTrackView('yearly')">
+            <span class="tab-icon">📊</span>
+            <span>Yearly Expenses</span>
+          </button>
+        </div>
+
+        <!-- Dedicated Filter & Date Selector Bar -->
+        <div class="card track-filter-card">
+          <!-- Daily Filter Controls -->
+          <div id="trackControlsDaily" class="track-control-group">
+            <div class="picker-row">
+              <label for="trackDateInput"><strong>Select Date:</strong></label>
+              <div class="picker-stepper">
+                <button type="button" class="btn-stepper" onclick="app.shiftTrackDate(-1)" title="Previous Day">‹</button>
+                <input type="date" id="trackDateInput" class="filter-input" onchange="app.onTrackDateChange(this.value)">
+                <button type="button" class="btn-stepper" onclick="app.shiftTrackDate(1)" title="Next Day">›</button>
+              </div>
+              <button type="button" class="btn-picker-shortcut" onclick="app.resetTrackDateToday()">Today</button>
+            </div>
+          </div>
+
+          <!-- Monthly Filter Controls -->
+          <div id="trackControlsMonthly" class="track-control-group" style="display:none;">
+            <div class="picker-row">
+              <label for="trackMonthInput"><strong>Select Month & Year:</strong></label>
+              <div class="picker-stepper">
+                <button type="button" class="btn-stepper" onclick="app.shiftTrackMonth(-1)" title="Previous Month">‹</button>
+                <input type="month" id="trackMonthInput" class="filter-input" onchange="app.onTrackMonthChange(this.value)">
+                <button type="button" class="btn-stepper" onclick="app.shiftTrackMonth(1)" title="Next Month">›</button>
+              </div>
+              <button type="button" class="btn-picker-shortcut" onclick="app.resetTrackMonthCurrent()">This Month</button>
+            </div>
+          </div>
+
+          <!-- Yearly Filter Controls -->
+          <div id="trackControlsYearly" class="track-control-group" style="display:none;">
+            <div class="picker-row">
+              <label for="trackYearSelect"><strong>Select Year:</strong></label>
+              <div class="picker-stepper">
+                <button type="button" class="btn-stepper" onclick="app.shiftTrackYear(-1)" title="Previous Year">‹</button>
+                <select id="trackYearSelect" class="filter-select" onchange="app.onTrackYearChange(this.value)">
+                  <!-- Dynamically populated -->
+                </select>
+                <button type="button" class="btn-stepper" onclick="app.shiftTrackYear(1)" title="Next Year">›</button>
+              </div>
+              <button type="button" class="btn-picker-shortcut" onclick="app.resetTrackYearCurrent()">This Year</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Period Summary Stat Cards -->
+        <div class="track-summary-grid">
+          <div class="track-summary-card purple">
+            <span class="tsum-label" id="trackSumPeriodLabel">Total Spent</span>
+            <strong class="tsum-value" id="trackSumTotalVal">₹0.00</strong>
+            <span class="tsum-sub" id="trackSumPeriodSub">Selected Period</span>
+          </div>
+
+          <div class="track-summary-card blue">
+            <span class="tsum-label">Transactions</span>
+            <strong class="tsum-value" id="trackSumCountVal">0</strong>
+            <span class="tsum-sub">Recorded entries</span>
+          </div>
+
+          <div class="track-summary-card green">
+            <span class="tsum-label">Average / Entry</span>
+            <strong class="tsum-value" id="trackSumAvgVal">₹0.00</strong>
+            <span class="tsum-sub">Per transaction</span>
+          </div>
+        </div>
+
+        <!-- Interactive Line Chart & Exact Companion Values Table -->
+        <div class="card track-chart-card">
+          <div class="track-chart-header">
+            <div>
+              <h3 id="trackChartTitle">Daily Spending Trend</h3>
+              <p class="subtitle" id="trackChartSub">Line chart showing spending over time</p>
+            </div>
+            <span class="badge badge-purple" id="trackChartTotalBadge">₹0.00 Total</span>
+          </div>
+
+          <div class="spending-chart-grid">
+            <div class="chart-box">
+              <div class="canvas-wrapper">
+                <canvas id="trackSpendingChart"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-table-box">
+              <div class="chart-table-header">
+                <span class="table-title" id="trackTableTitle">Date & Amount</span>
+                <span class="table-badge" id="trackTableBadge">0 rows</span>
+              </div>
+              <div class="table-scroll-wrapper">
+                <table class="financial-data-table" id="trackValuesTable">
+                  <thead>
+                    <tr>
+                      <th id="trackTableColHeader">Date</th>
+                      <th style="text-align:right;">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody id="trackValuesTableBody">
+                    <!-- Injected dynamically via JS -->
+                  </tbody>
+                  <tfoot>
+                    <tr class="table-total-row">
+                      <td>Total</td>
+                      <td style="text-align:right;" id="trackValuesTableTotal">₹0.00</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Itemized Expenses for the chosen period -->
+        <div class="card-section">
+          <div class="section-title-row">
+            <div class="title-with-badge">
+              <h3 id="trackExpensesListTitle">Transactions in Selected Period</h3>
+              <span class="timeline-badge" id="trackExpensesCountBadge">0 items</span>
+            </div>
+          </div>
+          <div class="timeline-container" id="trackExpensesList">
+            <!-- Injected via JS -->
           </div>
         </div>
       </section>
@@ -557,11 +817,15 @@
 
     </main>
 
-    <!-- Bottom Navigation Bar (Fixed for Mobile) -->
+    <!-- Bottom Navigation Bar (Fixed for Mobile - 5 Items) -->
     <nav class="bottom-nav">
       <button class="nav-item active" data-page="home" onclick="app.navTo('home')">
         <span class="nav-icon">🏠</span>
         <span class="nav-label">Home</span>
+      </button>
+      <button class="nav-item" data-page="track" onclick="app.navTo('track')">
+        <span class="nav-icon">📈</span>
+        <span class="nav-label">Track</span>
       </button>
       <button class="nav-item" data-page="expenses" onclick="app.navTo('expenses')">
         <span class="nav-icon">💰</span>
@@ -887,6 +1151,6 @@
 
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=6.0"></script>
 </body>
 </html>
