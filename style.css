@@ -3235,3 +3235,13 @@ table {
   }
 }
 
+#forgotPasswordModal {
+  z-index: 10005;
+}
+
+#forgotPasswordModal .modal-sheet {
+  border-radius: var(--radius-lg);
+  margin-bottom: auto;
+  margin-top: auto;
+}
+

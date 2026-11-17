@@ -238,6 +238,10 @@ class ChangePinRequest(BaseModel):
     current_password: Optional[str] = None
     new_password: Optional[str] = None
 
+class ResetPasswordRequest(BaseModel):
+    username: str
+    new_pin: Optional[str] = "1234"
+
 class ExpenseCreate(BaseModel):
     id: Optional[str] = None
     title: str
@@ -302,6 +306,25 @@ def change_pin(req: ChangePinRequest, current_user: str = Depends(get_current_us
     user.pin_hash = hash_pin(new)
     db.commit()
     return {"message": "Password updated successfully"}
+
+@app.post("/api/auth/reset-password")
+def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
+    if req.username not in ROOMMATES:
+        raise HTTPException(status_code=400, detail="User not recognized")
+    
+    new_pin = (req.new_pin or "1234").strip()
+    if len(new_pin) < 4:
+        raise HTTPException(status_code=400, detail="New password/PIN must be at least 4 characters")
+    
+    user = db.query(UserModel).filter(UserModel.name == req.username).first()
+    if not user:
+        user = UserModel(name=req.username, pin_hash=hash_pin(new_pin))
+        db.add(user)
+    else:
+        user.pin_hash = hash_pin(new_pin)
+    
+    db.commit()
+    return {"message": f"Password for {req.username} has been reset successfully"}
 
 @app.get("/api/auth/me")
 def get_me(current_user: str = Depends(get_current_user)):

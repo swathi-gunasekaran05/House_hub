@@ -398,6 +398,123 @@ class HouseHubApp {
     }
   }
 
+  // ================= FORGOT / RESET PASSWORD (OUTSIDE ON LOGIN SCREEN) =================
+  openForgotPasswordModal() {
+    const selectedUser = document.getElementById('loginSelectedUser')?.value || 'Vaishali';
+    const selectEl = document.getElementById('resetRoommateSelect');
+    if (selectEl) selectEl.value = selectedUser;
+
+    const targetLabel = document.getElementById('resetTargetUsername');
+    if (targetLabel) targetLabel.textContent = selectedUser;
+
+    const newPinInput = document.getElementById('resetNewPinInput');
+    const confirmPinInput = document.getElementById('resetConfirmPinInput');
+    if (newPinInput) newPinInput.value = '';
+    if (confirmPinInput) confirmPinInput.value = '';
+
+    const errEl = document.getElementById('resetErrorMsg');
+    if (errEl) errEl.classList.add('hidden');
+
+    this.openModal('forgotPasswordModal');
+  }
+
+  onResetRoommateChange(userName) {
+    const targetLabel = document.getElementById('resetTargetUsername');
+    if (targetLabel) targetLabel.textContent = userName;
+  }
+
+  async quickResetToDefault() {
+    const user = document.getElementById('resetRoommateSelect')?.value || document.getElementById('loginSelectedUser')?.value;
+    if (!user) return;
+
+    if (!confirm(`Reset security password for ${user} back to the default "1234"?`)) return;
+
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, new_pin: '1234' })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.detail || 'Could not reset password. Please try again.');
+        return;
+      }
+
+      this.closeModal('forgotPasswordModal');
+      this.selectLoginUser(user);
+      const pinInput = document.getElementById('loginPinInput');
+      if (pinInput) {
+        pinInput.value = '1234';
+        pinInput.focus();
+      }
+      this.showToast(`Password for ${user} reset to 1234! You can now log in. ✨`);
+    } catch (e) {
+      console.error('Password reset error', e);
+      alert('Network or server error resetting password.');
+    }
+  }
+
+  async handleForgotPasswordReset(event) {
+    event.preventDefault();
+    const user = document.getElementById('resetRoommateSelect')?.value || 'Vaishali';
+    const newPin = document.getElementById('resetNewPinInput')?.value.trim();
+    const confirmPin = document.getElementById('resetConfirmPinInput')?.value.trim();
+    const errEl = document.getElementById('resetErrorMsg');
+
+    if (errEl) errEl.classList.add('hidden');
+
+    if (!newPin || newPin.length < 4) {
+      if (errEl) {
+        errEl.textContent = 'Password must be at least 4 characters long.';
+        errEl.classList.remove('hidden');
+      }
+      return;
+    }
+
+    if (newPin !== confirmPin) {
+      if (errEl) {
+        errEl.textContent = 'Passwords do not match. Please re-enter.';
+        errEl.classList.remove('hidden');
+      }
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, new_pin: newPin })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const msg = err.detail || 'Could not reset password.';
+        if (errEl) {
+          errEl.textContent = msg;
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+
+      this.closeModal('forgotPasswordModal');
+      this.selectLoginUser(user);
+      const pinInput = document.getElementById('loginPinInput');
+      if (pinInput) {
+        pinInput.value = newPin;
+        pinInput.focus();
+      }
+      this.showToast(`Password updated for ${user}! Click Unlock to log in. ✨`);
+    } catch (e) {
+      console.error('Reset password error', e);
+      if (errEl) {
+        errEl.textContent = 'Server connection error. Please try again.';
+        errEl.classList.remove('hidden');
+      }
+    }
+  }
+
   openChangePinModal() {
     const userEl = document.getElementById('changePinUserName');
     if (userEl) userEl.textContent = this.data.activeUser || '';
