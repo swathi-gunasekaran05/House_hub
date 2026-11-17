@@ -496,6 +496,13 @@ class HouseHubApp {
     const hiddenInput = document.getElementById('loginSelectedUser');
     if (hiddenInput) hiddenInput.value = username;
 
+    // Keep reset modal dropdown and labels synchronized
+    const resetSelect = document.getElementById('resetRoommateSelect');
+    if (resetSelect) resetSelect.value = username;
+
+    const resetTarget = document.getElementById('resetTargetUsername');
+    if (resetTarget) resetTarget.textContent = username;
+
     document.querySelectorAll('.roommate-select-btn').forEach(btn => {
       btn.classList.toggle('active', btn.getAttribute('data-user') === username);
     });
@@ -591,10 +598,27 @@ class HouseHubApp {
   onResetRoommateChange(userName) {
     const targetLabel = document.getElementById('resetTargetUsername');
     if (targetLabel) targetLabel.textContent = userName;
+
+    // Synchronize login card selection as well
+    const hiddenInput = document.getElementById('loginSelectedUser');
+    if (hiddenInput) hiddenInput.value = userName;
+
+    const promptUserEl = document.getElementById('loginPromptUserName');
+    if (promptUserEl) promptUserEl.textContent = userName;
+
+    document.querySelectorAll('.roommate-select-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-user') === userName);
+    });
   }
 
   async quickResetToDefault() {
-    const user = document.getElementById('resetRoommateSelect')?.value || document.getElementById('loginSelectedUser')?.value;
+    // If the reset modal is currently open, read from the modal dropdown;
+    // otherwise, directly read the selected roommate on the login form!
+    const modal = document.getElementById('forgotPasswordModal');
+    const isModalOpen = modal && modal.classList.contains('open');
+    const user = isModalOpen
+      ? (document.getElementById('resetRoommateSelect')?.value || document.getElementById('loginSelectedUser')?.value || 'Vaishali')
+      : (document.getElementById('loginSelectedUser')?.value || document.getElementById('resetRoommateSelect')?.value || 'Vaishali');
     if (!user) return;
 
     if (!confirm(`Reset security password for ${user} back to the default "1234"?`)) return;
