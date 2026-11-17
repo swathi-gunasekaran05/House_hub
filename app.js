@@ -235,6 +235,7 @@ class HouseHubApp {
     this.calendarView = 'day'; // 'day', 'week', 'month'
     this.selectedCalendarDate = getTodayDateStr();
     this.expenseFilter = 'all'; // 'all', 'unsettled', 'mine', 'i_owe'
+    this.selectedExpenseMonth = getTodayDateStr().substring(0, 7); // e.g. '2026-11'
     this.notesTab = 'shopping'; // 'shopping', 'messages'
     this.activeExpenseId = null; // for detail modal
     this.dashWorkFilter = 'my'; // 'my', 'all'
@@ -636,6 +637,21 @@ class HouseHubApp {
     if (oweEl) oweEl.textContent = formatMoney(balances.iNeedToPay);
     if (recEl) recEl.textContent = formatMoney(balances.othersOweMe);
 
+    // Update Quick Month Spending in Hero Card
+    const curMonthStr = today.substring(0, 7);
+    const curMonthMetrics = this.calculateMonthlyMetrics(curMonthStr);
+    const curMonthObj = new Date();
+    const curMonthShort = curMonthObj.toLocaleDateString('en-IN', { month: 'short' });
+
+    const dashMonthTag = document.getElementById('dashCurrentMonthTag');
+    if (dashMonthTag) dashMonthTag.textContent = `${curMonthShort} Spending`;
+
+    const dashMonthWeSpent = document.getElementById('dashMonthWeSpent');
+    if (dashMonthWeSpent) dashMonthWeSpent.textContent = formatMoney(curMonthMetrics.totalHouseSpent);
+
+    const dashMonthISpent = document.getElementById('dashMonthISpent');
+    if (dashMonthISpent) dashMonthISpent.textContent = formatMoney(curMonthMetrics.totalPaidByMe);
+
     // Household Work (Filtered to My Tasks or All House Tasks)
     const isMyOnly = (this.dashWorkFilter !== 'all');
     const filteredTasks = isMyOnly
@@ -810,10 +826,191 @@ class HouseHubApp {
     };
   }
 
+  // ================= MONTHLY EXPENSE TRACKER HELPERS =================
+  onExpenseMonthChange(monthStr) {
+    this.selectedExpenseMonth = monthStr;
+    this.renderMonthlyTracker();
+    this.renderExpensesList();
+  }
+
+  getAvailableExpenseMonths() {
+    const monthsSet = new Set();
+    const curMonth = getTodayDateStr().substring(0, 7);
+    monthsSet.add(curMonth);
+
+    if (this.data && this.data.expenses) {
+      this.data.expenses.forEach(exp => {
+        if (exp.date && exp.date.length >= 7) {
+          monthsSet.add(exp.date.substring(0, 7));
+        }
+      });
+    }
+
+    return Array.from(monthsSet).sort((a, b) => b.localeCompare(a));
+  }
+
+  formatMonthLabel(monthStr) {
+    if (!monthStr || monthStr === 'all') return 'All Time (Entire History)';
+    try {
+      const [year, m] = monthStr.split('-').map(Number);
+      const d = new Date(year, m - 1, 1);
+      const now = new Date();
+      const isCurrent = (now.getFullYear() === year && (now.getMonth() + 1) === m);
+      const label = d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+      return isCurrent ? `${label} (Current)` : label;
+    } catch (e) {
+      return monthStr;
+    }
+  }
+
+  calculateMonthlyMetrics(monthStr = this.selectedExpenseMonth) {
+    const user = this.data.activeUser;
+    let totalHouseSpent = 0;
+    let totalPaidByMe = 0;
+    let myShare = 0;
+    const roommatePaid = { Vaishali: 0, Kaviya: 0, Elakiya: 0, Swathi: 0 };
+
+    const expenses = (monthStr && monthStr !== 'all')
+      ? this.data.expenses.filter(e => e.date && e.date.startsWith(monthStr))
+      : this.data.expenses;
+
+    expenses.forEach(exp => {
+      totalHouseSpent += exp.total;
+      if (roommatePaid.hasOwnProperty(exp.paidBy)) {
+        roommatePaid[exp.paidBy] += exp.total;
+      } else {
+        roommatePaid[exp.paidBy] = (roommatePaid[exp.paidBy] || 0) + exp.total;
+      }
+
+      if (exp.paidBy === user) {
+        totalPaidByMe += exp.total;
+      }
+
+      if (exp.splits) {
+        exp.splits.forEach(s => {
+          if (s.user === user) {
+            myShare += s.shareAmount;
+          }
+        });
+      }
+    });
+
+    totalHouseSpent = Math.round(totalHouseSpent * 100) / 100;
+    totalPaidByMe = Math.round(totalPaidByMe * 100) / 100;
+    myShare = Math.round(myShare * 100) / 100;
+    const netPosition = Math.round((totalPaidByMe - myShare) * 100) / 100;
+
+    return {
+      totalHouseSpent,
+      totalPaidByMe,
+      myShare,
+      netPosition,
+      roommatePaid,
+      count: expenses.length
+    };
+  }
+
+  renderMonthlyTracker() {
+    const selectEl = document.getElementById('expenseMonthSelect');
+    if (!selectEl) return;
+
+    const availableMonths = this.getAvailableExpenseMonths();
+
+    // If current selected month is not valid, fallback to first available
+    if (!this.selectedExpenseMonth) {
+      this.selectedExpenseMonth = availableMonths[0];
+    }
+
+    // Populate dropdown options
+    const optionsHTML = availableMonths.map(m => {
+      const lbl = this.formatMonthLabel(m);
+      return `<option value="${m}" ${m === this.selectedExpenseMonth ? 'selected' : ''}>${lbl}</option>`;
+    }).join('') + `<option value="all" ${this.selectedExpenseMonth === 'all' ? 'selected' : ''}>All Time (Entire History)</option>`;
+
+    selectEl.innerHTML = optionsHTML;
+
+    // Calculate metrics
+    const metrics = this.calculateMonthlyMetrics(this.selectedExpenseMonth);
+    const user = this.data.activeUser;
+
+    const houseEl = document.getElementById('monthTotalHouse');
+    const meEl = document.getElementById('monthTotalPaidByMe');
+    const shareEl = document.getElementById('monthMyShare');
+    const netEl = document.getElementById('monthNetPosition');
+    const netSubEl = document.getElementById('monthNetPositionSub');
+
+    if (houseEl) houseEl.textContent = formatMoney(metrics.totalHouseSpent);
+    if (meEl) meEl.textContent = formatMoney(metrics.totalPaidByMe);
+    if (shareEl) shareEl.textContent = formatMoney(metrics.myShare);
+
+    if (netEl) {
+      if (metrics.netPosition > 0) {
+        netEl.textContent = `+${formatMoney(metrics.netPosition)}`;
+        netEl.style.color = 'var(--success-dark)';
+        if (netSubEl) netSubEl.textContent = 'You are ahead / owed';
+      } else if (metrics.netPosition < 0) {
+        netEl.textContent = `-${formatMoney(Math.abs(metrics.netPosition))}`;
+        netEl.style.color = 'var(--danger-dark)';
+        if (netSubEl) netSubEl.textContent = 'You owe the house';
+      } else {
+        netEl.textContent = '₹0.00';
+        netEl.style.color = '#0369a1';
+        if (netSubEl) netSubEl.textContent = 'Even / Settled';
+      }
+    }
+
+    // Label heading
+    const monthNameEl = document.getElementById('mbreakdownMonthName');
+    const expCountEl = document.getElementById('mbreakdownExpCount');
+    if (monthNameEl) {
+      monthNameEl.textContent = this.formatMonthLabel(this.selectedExpenseMonth).replace(' (Current)', '').replace(' (Entire History)', 'All Time');
+    }
+    if (expCountEl) {
+      expCountEl.textContent = `${metrics.count} expense${metrics.count === 1 ? '' : 's'}`;
+    }
+
+    // Progress bar and Roommate cards
+    const progressBarEl = document.getElementById('monthSpendProgressBar');
+    const listEl = document.getElementById('monthRoommateList');
+
+    if (progressBarEl) {
+      if (metrics.totalHouseSpent === 0) {
+        progressBarEl.innerHTML = `<div class="spend-bar-seg" style="width:100%; background:#e2e8f0;"></div>`;
+      } else {
+        progressBarEl.innerHTML = ROOMMATES.map(r => {
+          const amt = metrics.roommatePaid[r] || 0;
+          const pct = Math.round((amt / metrics.totalHouseSpent) * 100);
+          return pct > 0 ? `<div class="spend-bar-seg ${r}" style="width:${pct}%;" title="${r}: ${formatMoney(amt)} (${pct}%)"></div>` : '';
+        }).join('');
+      }
+    }
+
+    if (listEl) {
+      listEl.innerHTML = ROOMMATES.map(r => {
+        const amt = metrics.roommatePaid[r] || 0;
+        const pct = metrics.totalHouseSpent > 0 ? Math.round((amt / metrics.totalHouseSpent) * 100) : 0;
+        const isMe = (r === user);
+        return `
+          <div class="rm-spend-pill ${isMe ? 'is-me' : ''}">
+            <div class="rm-spend-name">
+              <span class="rm-dot ${r}"></span>
+              <span>${r}${isMe ? ' (You)' : ''}</span>
+            </div>
+            <strong class="rm-spend-amt">${formatMoney(amt)}</strong>
+            <span class="rm-spend-pct">${pct}% of total</span>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
   // ================= EXPENSES PAGE =================
   renderExpensesPage() {
     const user = this.data.activeUser;
     const balances = this.calculateBalances(user);
+
+    // Render Monthly Tracker
+    this.renderMonthlyTracker();
 
     // Active user labels
     const pbalUser = document.getElementById('pbalUser');
@@ -879,8 +1076,14 @@ class HouseHubApp {
     if (!listEl) return;
     const user = this.data.activeUser;
     const filter = this.expenseFilter;
+    const monthFilter = this.selectedExpenseMonth;
 
     let filtered = [...this.data.expenses];
+
+    // Filter by selected month if not 'all'
+    if (monthFilter && monthFilter !== 'all') {
+      filtered = filtered.filter(exp => exp.date && exp.date.startsWith(monthFilter));
+    }
 
     if (filter === 'unsettled') {
       filtered = filtered.filter(exp => exp.splits.some(s => !s.paid));
@@ -895,10 +1098,12 @@ class HouseHubApp {
     }
 
     if (filtered.length === 0) {
+      const monthLbl = (monthFilter && monthFilter !== 'all') ? this.formatMonthLabel(monthFilter) : '';
       listEl.innerHTML = `
         <div class="empty-state">
           <span class="empty-icon">🧾</span>
-          <p>No expenses found under this view.</p>
+          <p>No expenses found ${monthLbl ? `for <strong>${monthLbl}</strong>` : ''} under this view.</p>
+          ${monthFilter && monthFilter !== 'all' ? `<button type="button" class="btn btn-secondary btn-compact" style="margin-top:8px;" onclick="app.onExpenseMonthChange('all')">Show All Months</button>` : ''}
         </div>
       `;
       return;

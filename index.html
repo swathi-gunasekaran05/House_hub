@@ -114,6 +114,19 @@
               <strong class="bal-value" id="dashReceiveAmount">₹0.00</strong>
             </div>
           </div>
+
+          <!-- Quick Month Spending Tracker Pill -->
+          <div class="hero-month-pill" onclick="app.navTo('expenses')" title="Click to view month-wise expense tracking">
+            <div class="hmonth-item">
+              <span class="hmonth-tag" id="dashCurrentMonthTag">This Month</span>
+              <span class="hmonth-sub">We Spent: <strong id="dashMonthWeSpent">₹0.00</strong></span>
+            </div>
+            <div class="hmonth-sep">•</div>
+            <div class="hmonth-item">
+              <span class="hmonth-sub">I Spent: <strong id="dashMonthISpent">₹0.00</strong></span>
+            </div>
+            <span class="hmonth-arrow">Track Details →</span>
+          </div>
         </div>
 
         <!-- Today's Household Work -->
@@ -209,6 +222,67 @@
           <button class="btn btn-primary" onclick="app.openAddExpenseModal()">
             <span class="btn-icon">+</span> Add Expense
           </button>
+        </div>
+
+        <!-- Month-Wise Spending Tracker Card -->
+        <div class="card monthly-spending-card">
+          <div class="month-tracker-header">
+            <div class="month-tracker-title">
+              <span class="tracker-icon" style="font-size:22px;">📊</span>
+              <div>
+                <h4 style="margin:0; font-size:15px; font-weight:800;">Monthly Spending Tracker</h4>
+                <p class="subtitle" style="margin:0; font-size:12px; color:var(--text-muted);">Total house expenses vs your personal spending</p>
+              </div>
+            </div>
+            <div class="month-selector-wrapper">
+              <select id="expenseMonthSelect" class="month-dropdown" onchange="app.onExpenseMonthChange(this.value)">
+                <!-- Dynamically populated options -->
+              </select>
+            </div>
+          </div>
+
+          <!-- Highlight Metric Stats -->
+          <div class="monthly-metrics-grid">
+            <div class="month-stat-box purple">
+              <span class="mstat-lbl">🏡 We Spent Totally</span>
+              <strong class="mstat-val" id="monthTotalHouse">₹0.00</strong>
+              <span class="mstat-sub">Entire House</span>
+            </div>
+
+            <div class="month-stat-box green">
+              <span class="mstat-lbl">💳 I Spent (My Paid)</span>
+              <strong class="mstat-val" id="monthTotalPaidByMe">₹0.00</strong>
+              <span class="mstat-sub">Paid out of pocket</span>
+            </div>
+
+            <div class="month-stat-box amber">
+              <span class="mstat-lbl">⚖️ My Fair Share</span>
+              <strong class="mstat-val" id="monthMyShare">₹0.00</strong>
+              <span class="mstat-sub">Your portion</span>
+            </div>
+
+            <div class="month-stat-box blue">
+              <span class="mstat-lbl">🔄 Net for Month</span>
+              <strong class="mstat-val" id="monthNetPosition">₹0.00</strong>
+              <span class="mstat-sub" id="monthNetPositionSub">Settled</span>
+            </div>
+          </div>
+
+          <!-- Roommate Spending Contribution Breakdown for the Month -->
+          <div class="month-roommate-section">
+            <div class="mbreakdown-header">
+              <span class="mbreakdown-title">Who Paid How Much in <span id="mbreakdownMonthName">This Month</span>:</span>
+              <span class="mbreakdown-count" id="mbreakdownExpCount">0 expenses</span>
+            </div>
+            <!-- Progress Bar Stack -->
+            <div class="spend-progress-bar" id="monthSpendProgressBar">
+              <!-- Colored segments injected via JS -->
+            </div>
+            <!-- Roommate List Grid -->
+            <div class="roommate-spend-list" id="monthRoommateList">
+              <!-- Roommate spend cards injected via JS -->
+            </div>
+          </div>
         </div>
 
         <!-- My Personal Balance Card -->
