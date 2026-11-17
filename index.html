@@ -49,8 +49,8 @@
             <label for="loginPinInput" style="font-weight:700; font-size:13px; color:#334155; margin-bottom:0;">
               Security Password / PIN for <span id="loginPromptUserName" style="color:var(--primary); font-weight:800;">Vaishali</span> *
             </label>
-            <button type="button" class="btn-forgot-pass-link" onclick="app.openForgotPasswordModal()" style="font-size:12px; font-weight:700; color:var(--primary); background:none; border:none; padding:0; cursor:pointer; text-decoration:underline;">
-              Forgot PIN?
+            <button type="button" class="btn-forgot-pass-link" onclick="app.quickResetToDefault()" style="font-size:12px; font-weight:700; color:var(--primary); background:none; border:none; padding:0; cursor:pointer; text-decoration:underline;">
+              Forgot PIN? (Reset to 1234)
             </button>
           </div>
           <input type="password" id="loginPinInput" placeholder="Enter Password or PIN (Default: 1234)" maxlength="64" required autocomplete="current-password">
@@ -64,7 +64,7 @@
 
         <div class="login-hint">
           Each roommate has their own secure account.<br>
-          Default password is <strong>1234</strong>. If forgotten, tap <a href="javascript:void(0)" onclick="app.openForgotPasswordModal()" style="color:var(--primary); font-weight:700; text-decoration:underline;">Forgot PIN</a> to reset.
+          Default password is <strong>1234</strong>. If forgotten, tap <a href="javascript:void(0)" onclick="app.quickResetToDefault()" style="color:var(--primary); font-weight:700; text-decoration:underline;">Forgot PIN (Reset to 1234)</a>.
         </div>
       </form>
     </div>
@@ -72,53 +72,37 @@
 
   <!-- Dedicated Forgot / Reset Password Modal (Directly accessible on login screen) -->
   <div class="modal-backdrop" id="forgotPasswordModal">
-    <div class="modal-sheet" style="max-width:420px; margin:auto;">
+    <div class="modal-sheet" style="max-width:400px; margin:auto;">
       <div class="modal-header">
-        <h3 style="font-size:16px;">🔑 Reset Roommate Password</h3>
+        <h3 style="font-size:16px;">🔑 Reset PIN to 1234</h3>
         <button type="button" class="close-btn" onclick="app.closeModal('forgotPasswordModal')">✕</button>
       </div>
 
-      <p class="modal-subtitle" style="margin-bottom:14px; font-size:12.5px; color:#64748b;">
-        Forgot your PIN? Reset the password for <strong id="resetTargetUsername" style="color:var(--primary);">Vaishali</strong> below:
+      <p class="modal-subtitle" style="margin-bottom:14px; font-size:13px; color:#64748b;">
+        Forgot your security password? This will reset the PIN for <strong id="resetTargetUsername" style="color:var(--primary);">Vaishali</strong> back to default <strong>1234</strong>:
       </p>
 
-      <form id="forgotPasswordForm" onsubmit="app.handleForgotPasswordReset(event)">
-        <div class="form-group" style="text-align:left;">
-          <label style="font-size:13px; font-weight:700;">Select Roommate Account *</label>
-          <select id="resetRoommateSelect" class="form-select" onchange="app.onResetRoommateChange(this.value)" style="width:100%; padding:10px 12px; border-radius:10px; border:1.5px solid #cbd5e1; font-weight:600;">
-            <option value="Vaishali">Vaishali</option>
-            <option value="Kaviya">Kaviya</option>
-            <option value="Elakiya">Elakiya</option>
-            <option value="Swathi">Swathi</option>
-          </select>
-        </div>
+      <div class="form-group" style="text-align:left;">
+        <label style="font-size:13px; font-weight:700;">Select Roommate Account *</label>
+        <select id="resetRoommateSelect" class="form-select" onchange="app.onResetRoommateChange(this.value)" style="width:100%; padding:10px 12px; border-radius:10px; border:1.5px solid #cbd5e1; font-weight:600;">
+          <option value="Vaishali">Vaishali</option>
+          <option value="Kaviya">Kaviya</option>
+          <option value="Elakiya">Elakiya</option>
+          <option value="Swathi">Swathi</option>
+        </select>
+      </div>
 
-        <div class="form-group" style="text-align:left;">
-          <label for="resetNewPinInput" style="font-size:13px; font-weight:700;">New Password / PIN *</label>
-          <input type="password" id="resetNewPinInput" placeholder="Enter new password (min 4 characters)" minlength="4" maxlength="64" required autocomplete="new-password">
-        </div>
+      <div id="resetErrorMsg" class="login-error hidden" style="margin-bottom:10px;"></div>
 
-        <div class="form-group" style="text-align:left;">
-          <label for="resetConfirmPinInput" style="font-size:13px; font-weight:700;">Confirm New Password *</label>
-          <input type="password" id="resetConfirmPinInput" placeholder="Re-enter new password" minlength="4" maxlength="64" required autocomplete="new-password">
-        </div>
+      <div class="modal-actions" style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
+        <button type="button" class="btn btn-primary" style="width:100%; padding:12px; font-size:14px; font-weight:700; border-radius:10px;" onclick="app.quickResetToDefault()">
+          ⚡ Reset PIN to 1234 Now
+        </button>
 
-        <div id="resetErrorMsg" class="login-error hidden" style="margin-bottom:10px;"></div>
-
-        <div class="modal-actions" style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
-          <button type="submit" class="btn btn-primary" style="width:100%; padding:12px; font-size:14px; font-weight:700; border-radius:10px;">
-            Save & Update Password
-          </button>
-          
-          <button type="button" class="btn btn-secondary" style="width:100%; padding:10px; font-size:13px; border-radius:10px;" onclick="app.quickResetToDefault()">
-            ⚡ Quick Reset to Default (1234)
-          </button>
-
-          <button type="button" class="btn-text-action" style="align-self:center; font-size:13px; color:#64748b; margin-top:2px;" onclick="app.closeModal('forgotPasswordModal')">
-            Cancel
-          </button>
-        </div>
-      </form>
+        <button type="button" class="btn-text-action" style="align-self:center; font-size:13px; color:#64748b; margin-top:2px;" onclick="app.closeModal('forgotPasswordModal')">
+          Cancel
+        </button>
+      </div>
     </div>
   </div>
 
@@ -431,17 +415,41 @@
           </div>
         </div>
 
-        <!-- Filter tabs for expenses -->
-        <div class="filter-tabs">
-          <button class="filter-tab active" data-exp-filter="all" onclick="app.setExpenseFilter('all')">All Expenses</button>
-          <button class="filter-tab" data-exp-filter="unsettled" onclick="app.setExpenseFilter('unsettled')">Pending</button>
-          <button class="filter-tab" data-exp-filter="mine" onclick="app.setExpenseFilter('mine')">Paid By Me</button>
-          <button class="filter-tab" data-exp-filter="i_owe" onclick="app.setExpenseFilter('i_owe')">I Need To Pay</button>
-        </div>
+        <!-- Time-Period Expense Timeline (Matching Screenshot UI) -->
+        <div class="timeline-wrapper">
+          <div class="timeline-header-bar">
+            <div class="timeline-title-row">
+              <h3><span>📊</span> Monthly Expenses</h3>
+              <span class="timeline-badge" id="timelineCountBadge">0 items</span>
+            </div>
+            <!-- Top Segmented Period Pills: All, Daily, Weekly, Monthly, Yearly -->
+            <div class="period-filter-pills">
+              <button type="button" class="period-pill active" data-period="all" onclick="app.setTimePeriodFilter('all')">All</button>
+              <button type="button" class="period-pill" data-period="daily" onclick="app.setTimePeriodFilter('daily')">Daily</button>
+              <button type="button" class="period-pill" data-period="weekly" onclick="app.setTimePeriodFilter('weekly')">Weekly</button>
+              <button type="button" class="period-pill" data-period="monthly" onclick="app.setTimePeriodFilter('monthly')">Monthly</button>
+              <button type="button" class="period-pill" data-period="yearly" onclick="app.setTimePeriodFilter('yearly')">Yearly</button>
+            </div>
+          </div>
 
-        <!-- Expenses List -->
-        <div class="expenses-container" id="expensesList">
-          <!-- Injected via JS -->
+          <!-- Secondary Sub-Filter Row -->
+          <div class="filter-tabs sub-filter-strip">
+            <button class="filter-tab active" data-exp-filter="all" onclick="app.setExpenseFilter('all')">All</button>
+            <button class="filter-tab" data-exp-filter="unsettled" onclick="app.setExpenseFilter('unsettled')">Pending</button>
+            <button class="filter-tab" data-exp-filter="mine" onclick="app.setExpenseFilter('mine')">Paid By Me</button>
+            <button class="filter-tab" data-exp-filter="i_owe" onclick="app.setExpenseFilter('i_owe')">I Need To Pay</button>
+          </div>
+
+          <!-- Column Header Labels: Details & Amount -->
+          <div class="timeline-table-header">
+            <span>Details</span>
+            <span>Amount</span>
+          </div>
+
+          <!-- Expenses List Grouped by Date (TODAY, YESTERDAY, DATE) -->
+          <div class="timeline-container" id="expensesList">
+            <!-- Injected via JS -->
+          </div>
         </div>
       </section>
 

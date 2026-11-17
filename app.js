@@ -50,6 +50,62 @@ function formatDisplayDate(dateStr) {
   });
 }
 
+// Icon detector matching screenshot UI
+function getExpenseIcon(title = '', items = []) {
+  const text = (title + ' ' + (items || []).map(i => i.name).join(' ')).toLowerCase();
+  if (text.includes('fuel') || text.includes('petrol') || text.includes('diesel')) {
+    return { icon: '⛽', bg: '#fee2e2' };
+  }
+  if (text.includes('grocery') || text.includes('vegetable') || text.includes('rice') || text.includes('dal') || text.includes('supermarket') || text.includes('curry')) {
+    return { icon: '🥗', bg: '#dcfce7' };
+  }
+  if (text.includes('milk') || text.includes('dairy') || text.includes('curd') || text.includes('egg')) {
+    return { icon: '🥛', bg: '#e0f2fe' };
+  }
+  if (text.includes('food') || text.includes('dinner') || text.includes('lunch') || text.includes('swiggy') || text.includes('zomato') || text.includes('snack') || text.includes('tea') || text.includes('coffee')) {
+    return { icon: '🍽️', bg: '#ffedd5' };
+  }
+  if (text.includes('bill') || text.includes('electric') || text.includes('wifi') || text.includes('gas') || text.includes('water') || text.includes('cylinder')) {
+    return { icon: '⚡', bg: '#fef3c7' };
+  }
+  if (text.includes('shop') || text.includes('cloth') || text.includes('amazon') || text.includes('myntra') || text.includes('dress')) {
+    return { icon: '🛍️', bg: '#fce7f3' };
+  }
+  if (text.includes('rent') || text.includes('house') || text.includes('maintenance')) {
+    return { icon: '🏠', bg: '#ede9fe' };
+  }
+  if (text.includes('invest') || text.includes('sip') || text.includes('savings') || text.includes('deposit') || text.includes('salary')) {
+    return { icon: '💰', bg: '#fef08a' };
+  }
+  if (text.includes('loan') || text.includes('emi') || text.includes('bike') || text.includes('car') || text.includes('vehicle') || text.includes('service')) {
+    return { icon: '🚗', bg: '#e0e7ff' };
+  }
+  return { icon: '🧾', bg: '#f1f5f9' };
+}
+
+// Date group header label (TODAY, YESTERDAY, 17 NOV, TUE)
+function getDateGroupLabel(dateStr) {
+  const today = getTodayDateStr();
+  const todayObj = new Date();
+  
+  const yDate = new Date(todayObj);
+  yDate.setDate(todayObj.getDate() - 1);
+  const yStr = `${yDate.getFullYear()}-${String(yDate.getMonth() + 1).padStart(2, '0')}-${String(yDate.getDate()).padStart(2, '0')}`;
+
+  if (dateStr === today) return 'TODAY';
+  if (dateStr === yStr) return 'YESTERDAY';
+
+  try {
+    const [year, m, d] = dateStr.split('-').map(Number);
+    const dateObj = new Date(year, m - 1, d);
+    const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+    const monthName = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+    return `${d} ${monthName}, ${dayName}`;
+  } catch (e) {
+    return dateStr;
+  }
+}
+
 function getTodayDateStr() {
   const now = new Date();
   const y = now.getFullYear();
@@ -235,6 +291,7 @@ class HouseHubApp {
     this.calendarView = 'day'; // 'day', 'week', 'month'
     this.selectedCalendarDate = getTodayDateStr();
     this.expenseFilter = 'all'; // 'all', 'unsettled', 'mine', 'i_owe'
+    this.timePeriodFilter = 'all'; // 'all', 'daily', 'weekly', 'monthly', 'yearly'
     this.selectedExpenseMonth = getTodayDateStr().substring(0, 7); // e.g. '2026-11'
     this.notesTab = 'shopping'; // 'shopping', 'messages'
     this.activeExpenseId = null; // for detail modal
@@ -1286,6 +1343,14 @@ class HouseHubApp {
     this.renderExpensesList();
   }
 
+  setTimePeriodFilter(period) {
+    this.timePeriodFilter = period;
+    document.querySelectorAll('.period-pill').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-period') === period);
+    });
+    this.renderExpensesList();
+  }
+
   setExpenseFilter(filterName) {
     this.expenseFilter = filterName;
     document.querySelectorAll('.filter-tab').forEach(t => {
@@ -1299,15 +1364,32 @@ class HouseHubApp {
     if (!listEl) return;
     const user = this.data.activeUser;
     const filter = this.expenseFilter;
+    const period = this.timePeriodFilter || 'all';
     const monthFilter = this.selectedExpenseMonth;
 
     let filtered = [...this.data.expenses];
+    const today = getTodayDateStr();
+    const now = new Date();
 
-    // Filter by selected month if not 'all'
-    if (monthFilter && monthFilter !== 'all') {
+    // 1. Time-Period filter (matching screenshot: All, Daily, Weekly, Monthly, Yearly)
+    if (period === 'daily') {
+      filtered = filtered.filter(exp => exp.date === today);
+    } else if (period === 'weekly') {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(now.getDate() - 6);
+      const sevenDaysAgoStr = `${sevenDaysAgo.getFullYear()}-${String(sevenDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(sevenDaysAgo.getDate()).padStart(2, '0')}`;
+      filtered = filtered.filter(exp => exp.date >= sevenDaysAgoStr && exp.date <= today);
+    } else if (period === 'monthly') {
+      const mPrefix = (monthFilter && monthFilter !== 'all') ? monthFilter : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      filtered = filtered.filter(exp => exp.date && exp.date.startsWith(mPrefix));
+    } else if (period === 'yearly') {
+      const yPrefix = `${now.getFullYear()}-`;
+      filtered = filtered.filter(exp => exp.date && exp.date.startsWith(yPrefix));
+    } else if (monthFilter && monthFilter !== 'all') {
       filtered = filtered.filter(exp => exp.date && exp.date.startsWith(monthFilter));
     }
 
+    // 2. Status / User filter (All, Pending, Paid by Me, I Need To Pay)
     if (filter === 'unsettled') {
       filtered = filtered.filter(exp => exp.splits.some(s => !s.paid));
     } else if (filter === 'mine') {
@@ -1320,76 +1402,87 @@ class HouseHubApp {
       });
     }
 
+    // Sort descending by date
+    filtered.sort((a, b) => b.date.localeCompare(a.date));
+
+    // Update count badge
+    const badgeEl = document.getElementById('timelineCountBadge');
+    if (badgeEl) {
+      badgeEl.textContent = `${filtered.length} item${filtered.length === 1 ? '' : 's'}`;
+    }
+
     if (filtered.length === 0) {
-      const monthLbl = (monthFilter && monthFilter !== 'all') ? this.formatMonthLabel(monthFilter) : '';
       listEl.innerHTML = `
-        <div class="empty-state">
+        <div class="empty-state" style="padding:36px 16px;">
           <span class="empty-icon">🧾</span>
-          <p>No expenses found ${monthLbl ? `for <strong>${monthLbl}</strong>` : ''} under this view.</p>
-          ${monthFilter && monthFilter !== 'all' ? `<button type="button" class="btn btn-secondary btn-compact" style="margin-top:8px;" onclick="app.onExpenseMonthChange('all')">Show All Months</button>` : ''}
+          <p>No transactions found for this view.</p>
+          <button type="button" class="btn btn-secondary btn-compact" style="margin-top:8px;" onclick="app.setTimePeriodFilter('all'); app.setExpenseFilter('all'); app.onExpenseMonthChange('all');">Reset Filters</button>
         </div>
       `;
       return;
     }
 
-    listEl.innerHTML = filtered.map(exp => {
-      const isPayer = exp.paidBy === user;
-      const mySplit = exp.splits.find(s => s.user === user);
-      const pendingSplits = exp.splits.filter(s => !s.paid);
-      const isAllSettled = pendingSplits.length === 0;
+    // 3. Group by Date (matching screenshot structure)
+    const grouped = {};
+    filtered.forEach(exp => {
+      const d = exp.date || 'Other';
+      if (!grouped[d]) grouped[d] = [];
+      grouped[d].push(exp);
+    });
 
-      // Status indicator text
-      let badgeHTML = '';
-      if (isAllSettled) {
-        badgeHTML = `<span class="status-badge all-settled">✓ Settled</span>`;
-      } else {
-        badgeHTML = `<span class="status-badge pending">${pendingSplits.length} Pending</span>`;
-      }
+    let html = '';
+    for (const [dateStr, items] of Object.entries(grouped)) {
+      const groupLabel = getDateGroupLabel(dateStr);
+      const groupTotal = items.reduce((sum, item) => sum + item.total, 0);
 
-      // Line items preview string
-      const itemsString = exp.items && exp.items.length > 0
-        ? exp.items.map(it => `${it.name} (${formatMoney(it.amount)})`).join(' • ')
-        : 'Multiple items';
+      html += `
+        <div class="timeline-date-group">
+          <div class="timeline-date-header">
+            <span class="timeline-date-label">${groupLabel}</span>
+            <span class="timeline-date-total">-₹${groupTotal.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+          </div>
+          <div class="timeline-group-items">
+      `;
 
-      // Split avatars
-      const avatarsHTML = exp.splits.map(s => `
-        <span class="mini-avatar ${s.paid ? 'paid' : ''}" title="${s.user}: ${s.paid ? 'Paid' : 'Pending'}">
-          ${s.user.charAt(0)}
-        </span>
-      `).join('');
+      items.forEach(exp => {
+        const iconInfo = getExpenseIcon(exp.title, exp.items);
+        const pendingSplits = exp.splits.filter(s => !s.paid);
+        const isSettled = pendingSplits.length === 0;
 
-      return `
-        <div class="expense-card" onclick="app.openExpenseDetail('${exp.id}')">
-          <div class="expense-top">
-            <div class="expense-meta-left">
-              <div class="expense-icon-badge">🛒</div>
-              <div class="expense-title-group">
-                <h4>${exp.title}</h4>
-                <div class="expense-date-payer">${formatDisplayDate(exp.date)} • Paid by <strong>${exp.paidBy}</strong></div>
+        const subtitle = exp.items && exp.items.length > 0
+          ? exp.items.map(it => it.name).join(', ')
+          : (exp.title || 'Expense');
+
+        const isPayer = (exp.paidBy === user);
+        const payerTag = isPayer ? 'You paid' : `Paid by ${exp.paidBy}`;
+        const statusText = isSettled ? '✓ Settled' : `${pendingSplits.length} pending`;
+
+        html += `
+          <div class="timeline-item-row" onclick="app.openExpenseDetail('${exp.id}')">
+            <div class="timeline-item-left">
+              <div class="timeline-icon-circle" style="background:${iconInfo.bg};">
+                ${iconInfo.icon}
+              </div>
+              <div class="timeline-item-details">
+                <div class="timeline-item-title">${exp.title}</div>
+                <div class="timeline-item-subtitle">${subtitle} • <strong style="color:#475569;">${payerTag}</strong></div>
               </div>
             </div>
-            <div class="expense-amount-group">
-              <div class="expense-total">${formatMoney(exp.total)}</div>
-              ${badgeHTML}
+            <div class="timeline-item-right">
+              <div class="timeline-item-amt">-₹${exp.total.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+              <div class="timeline-item-meta">${statusText}</div>
             </div>
           </div>
+        `;
+      });
 
-          <div class="expense-items-preview">
-            ${itemsString}
-          </div>
-
-          <div class="expense-footer">
-            <div class="split-pill-group">
-              <span style="font-size:11px; color:var(--text-muted); margin-right:4px;">Split:</span>
-              ${avatarsHTML}
-            </div>
-            <span style="font-size:12px; font-weight:700; color:var(--primary);">
-              Details & Payment →
-            </span>
+      html += `
           </div>
         </div>
       `;
-    }).join('');
+    }
+
+    listEl.innerHTML = html;
   }
 
   // ================= ADD / EDIT EXPENSE FORM =================
