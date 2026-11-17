@@ -970,7 +970,6 @@ class HouseHubApp {
     const expIdInput = document.getElementById('expId');
     const expDateInput = document.getElementById('expDate');
     const expPaidBy = document.getElementById('expPaidBy');
-    const expPaidByDisplay = document.getElementById('expPaidByDisplay');
     const expTitleInput = document.getElementById('expTitle');
     const itemsContainer = document.getElementById('expenseItemsContainer');
     const checkboxesContainer = document.getElementById('expSplitCheckboxes');
@@ -978,15 +977,10 @@ class HouseHubApp {
     const currentUser = this.data.activeUser;
 
     if (expenseToEdit) {
-      if (expenseToEdit.paidBy !== currentUser) {
-        alert(`Only ${expenseToEdit.paidBy}, who paid this amount, can edit this expense.`);
-        return;
-      }
       modalTitle.textContent = 'Edit Expense';
       expIdInput.value = expenseToEdit.id;
       expDateInput.value = expenseToEdit.date;
-      if (expPaidBy) expPaidBy.value = expenseToEdit.paidBy;
-      if (expPaidByDisplay) expPaidByDisplay.value = `${expenseToEdit.paidBy} (You)`;
+      if (expPaidBy) expPaidBy.value = expenseToEdit.paidBy || currentUser;
       expTitleInput.value = expenseToEdit.title;
 
       // Populate Items
@@ -1009,8 +1003,7 @@ class HouseHubApp {
       modalTitle.textContent = 'Add Expense';
       expIdInput.value = '';
       expDateInput.value = getTodayDateStr();
-      if (expPaidBy) expPaidBy.value = currentUser;
-      if (expPaidByDisplay) expPaidByDisplay.value = `${currentUser} (You)`;
+      if (expPaidBy) expPaidBy.value = currentUser || 'Swathi';
       expTitleInput.value = '';
 
       // Default with 2 blank item rows
@@ -1075,8 +1068,11 @@ class HouseHubApp {
     }
 
     const perPerson = total > 0 ? (total / selectedPeople.length) : 0;
+    const paidByEl = document.getElementById('expPaidBy');
+    const paidBy = (paidByEl && paidByEl.value) ? paidByEl.value : this.data.activeUser;
+
     if (preview) {
-      preview.innerHTML = `Split between ${selectedPeople.length} people: <strong>${formatMoney(perPerson)} each</strong>`;
+      preview.innerHTML = `Split between ${selectedPeople.length} people: <strong>${formatMoney(perPerson)} each</strong> (Paid by: <strong>${paidBy}</strong>)`;
     }
   }
 
@@ -1085,7 +1081,8 @@ class HouseHubApp {
 
     const id = document.getElementById('expId').value;
     const date = document.getElementById('expDate').value;
-    const paidBy = this.data.activeUser; // Strictly the authenticated logged-in user
+    const paidByEl = document.getElementById('expPaidBy');
+    const paidBy = (paidByEl && paidByEl.value) ? paidByEl.value : this.data.activeUser;
     const titleInput = document.getElementById('expTitle').value.trim();
 
     // Read items
@@ -1210,10 +1207,6 @@ class HouseHubApp {
 
     if (btnEdit) {
       btnEdit.onclick = () => {
-        if (this.data.activeUser !== expense.paidBy) {
-          alert(`Only ${expense.paidBy}, who paid this expense, can edit it.`);
-          return;
-        }
         this.closeModal('expenseDetailModal');
         this.openAddExpenseModal(expense);
       };
@@ -1221,10 +1214,6 @@ class HouseHubApp {
 
     if (btnDelete) {
       btnDelete.onclick = () => {
-        if (this.data.activeUser !== expense.paidBy) {
-          alert(`Only ${expense.paidBy}, who paid this expense, can delete it.`);
-          return;
-        }
         if (confirm(`Are you sure you want to delete "${expense.title}"?`)) {
           this.data.expenses = this.data.expenses.filter(e => e.id !== expense.id);
           this.saveData();

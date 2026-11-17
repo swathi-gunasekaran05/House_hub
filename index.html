@@ -423,13 +423,17 @@
 
           <div class="form-row two-col">
             <div class="form-group">
-              <label>Date *</label>
+              <label for="expDate">Date *</label>
               <input type="date" id="expDate" required>
             </div>
             <div class="form-group">
-              <label>Paid by</label>
-              <input type="text" id="expPaidByDisplay" readonly class="form-input-readonly" value="">
-              <input type="hidden" id="expPaidBy" value="">
+              <label for="expPaidBy">Paid by *</label>
+              <select id="expPaidBy" class="form-select" onchange="app.recalculateFormSplits()" required>
+                <option value="Vaishali">Vaishali</option>
+                <option value="Kaviya">Kaviya</option>
+                <option value="Elakiya">Elakiya</option>
+                <option value="Swathi">Swathi</option>
+              </select>
             </div>
           </div>
 

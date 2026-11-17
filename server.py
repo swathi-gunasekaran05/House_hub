@@ -371,22 +371,22 @@ def save_expense(exp: ExpenseCreate, current_user: str = Depends(get_current_use
     exp_id = exp.id or f"exp-{int(datetime.utcnow().timestamp()*1000)}"
     existing = db.query(ExpenseModel).filter(ExpenseModel.id == exp_id).first()
 
+    # Allow selecting any roommate who actually paid
+    payer = exp.paidBy if (exp.paidBy and exp.paidBy in ROOMMATES) else current_user
+
     if existing:
-        # Strict Rule: Only the payer can edit!
-        if existing.paid_by != current_user:
-            raise HTTPException(status_code=403, detail=f"Only {existing.paid_by} can edit this expense.")
         existing.title = exp.title
         existing.date = exp.date
+        existing.paid_by = payer
         existing.total = exp.total
         existing.items_json = json.dumps(exp.items)
         existing.splits_json = json.dumps(exp.splits)
     else:
-        # Strict Rule: Paid by is always the authenticated user creating the expense
         new_exp = ExpenseModel(
             id=exp_id,
             title=exp.title,
             date=exp.date,
-            paid_by=current_user,
+            paid_by=payer,
             total=exp.total,
             items_json=json.dumps(exp.items),
             splits_json=json.dumps(exp.splits)
@@ -401,10 +401,6 @@ def delete_expense(exp_id: str, current_user: str = Depends(get_current_user), d
     expense = db.query(ExpenseModel).filter(ExpenseModel.id == exp_id).first()
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
-    
-    # Strict Rule: Only the payer can delete!
-    if expense.paid_by != current_user:
-        raise HTTPException(status_code=403, detail=f"Only {expense.paid_by} can delete this expense.")
     
     db.delete(expense)
     db.commit()
